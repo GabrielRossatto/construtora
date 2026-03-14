@@ -1,0 +1,41 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/construtora_saas?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:root}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:replace-this-secret-with-strong-random-key-32-chars}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
+  security:
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173}
+  storage:
+    bucket: ${S3_BUCKET:construtora-files}
+    region: ${S3_REGION:us-east-1}
+    endpoint: ${S3_ENDPOINT:}
+    public-base-url: ${S3_PUBLIC_BASE_URL:}
+    public-read: ${S3_PUBLIC_READ:true}
+    access-key: ${S3_ACCESS_KEY:}
+    secret-key: ${S3_SECRET_KEY:}
+    force-path-style: ${S3_FORCE_PATH_STYLE:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
