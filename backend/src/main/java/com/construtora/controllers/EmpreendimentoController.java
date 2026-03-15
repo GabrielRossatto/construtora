@@ -4,6 +4,7 @@ import com.construtora.dtos.EmpreendimentoDtos;
 import com.construtora.services.EmpreendimentoService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -55,5 +56,12 @@ public class EmpreendimentoController {
                                                                    @RequestParam("file") MultipartFile file,
                                                                    HttpServletRequest httpRequest) {
         return empreendimentoService.uploadArquivo(id, file, httpRequest);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("@permissionService.hasPermission(authentication, 'CREATE_DEVELOPMENT')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id, HttpServletRequest httpRequest) {
+        empreendimentoService.delete(id, httpRequest);
     }
 }

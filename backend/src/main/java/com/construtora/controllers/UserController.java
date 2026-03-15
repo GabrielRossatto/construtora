@@ -37,4 +37,14 @@ public class UserController {
     public UserDtos.UserResponse getById(@PathVariable Long id) {
         return userService.getById(id);
     }
+
+    @GetMapping("/me")
+    public UserDtos.MyProfileResponse me() {
+        return userService.getMyProfile();
+    }
+
+    @PutMapping("/me")
+    public UserDtos.MyProfileResponse updateMe(@Valid @RequestBody UserDtos.UpdateMyProfileRequest request) {
+        return userService.updateMyProfile(request);
+    }
 }

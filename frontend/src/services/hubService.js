@@ -16,6 +16,9 @@ export const hubService = {
     }
     return api.request('/api/empreendimentos', { method: 'POST', token, body: payload })
   },
+  excluirEmpreendimento(token, id) {
+    return api.request(`/api/empreendimentos/${id}`, { method: 'DELETE', token })
+  },
   materiais(token) {
     return api.request('/api/materiais', { token })
   },
@@ -36,6 +39,12 @@ export const hubService = {
   },
   criarUsuario(token, payload) {
     return api.request('/api/users', { method: 'POST', token, body: payload })
+  },
+  meuPerfil(token) {
+    return api.request('/api/users/me', { token })
+  },
+  atualizarMeuPerfil(token, payload) {
+    return api.request('/api/users/me', { method: 'PUT', token, body: payload })
   },
   publicMateriais(publicToken) {
     return api.request(`/api/public/empreendimentos/${publicToken}/materiais`)

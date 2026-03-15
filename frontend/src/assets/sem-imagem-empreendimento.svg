@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" role="img" aria-labelledby="title desc">
+  <title id="title">Sem imagem</title>
+  <desc id="desc">Placeholder para empreendimento sem foto cadastrada.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2f90db" />
+      <stop offset="100%" stop-color="#dce8f3" />
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="800" fill="url(#bg)" rx="40" />
+  <rect x="120" y="120" width="560" height="560" rx="28" fill="rgba(255,255,255,0.22)" />
+
+  <circle cx="320" cy="325" r="70" fill="rgba(15,23,42,0.35)" />
+  <path d="M220 575l130-135 95 98 65-67 90 104H220z" fill="rgba(15,23,42,0.35)" />
+
+  <text x="400" y="655" text-anchor="middle" fill="rgba(15,23,42,0.75)" font-family="Arial, sans-serif" font-size="40" font-weight="700">
+    SEM IMAGEM
+  </text>
+</svg>

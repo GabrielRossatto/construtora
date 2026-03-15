@@ -4,8 +4,10 @@ import com.construtora.dtos.EmpreendimentoDtos;
 import com.construtora.entities.Empreendimento;
 import com.construtora.entities.EmpreendimentoArquivo;
 import com.construtora.exceptions.NotFoundException;
+import com.construtora.repositories.CampanhaRepository;
 import com.construtora.repositories.EmpreendimentoArquivoRepository;
 import com.construtora.repositories.EmpreendimentoRepository;
+import com.construtora.repositories.MaterialRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,17 +21,23 @@ public class EmpreendimentoService {
 
     private final EmpreendimentoRepository empreendimentoRepository;
     private final EmpreendimentoArquivoRepository empreendimentoArquivoRepository;
+    private final MaterialRepository materialRepository;
+    private final CampanhaRepository campanhaRepository;
     private final CurrentSessionService currentSessionService;
     private final FileStorageService fileStorageService;
     private final AuditService auditService;
 
     public EmpreendimentoService(EmpreendimentoRepository empreendimentoRepository,
                                  EmpreendimentoArquivoRepository empreendimentoArquivoRepository,
+                                 MaterialRepository materialRepository,
+                                 CampanhaRepository campanhaRepository,
                                  CurrentSessionService currentSessionService,
                                  FileStorageService fileStorageService,
                                  AuditService auditService) {
         this.empreendimentoRepository = empreendimentoRepository;
         this.empreendimentoArquivoRepository = empreendimentoArquivoRepository;
+        this.materialRepository = materialRepository;
+        this.campanhaRepository = campanhaRepository;
         this.currentSessionService = currentSessionService;
         this.fileStorageService = fileStorageService;
         this.auditService = auditService;
@@ -109,6 +117,20 @@ public class EmpreendimentoService {
                 arquivo.getTamanhoBytes(),
                 arquivo.getDataUpload()
         );
+    }
+
+    @Transactional
+    public void delete(Long id, HttpServletRequest httpRequest) {
+        Long empresaId = currentSessionService.empresaId();
+        Empreendimento empreendimento = empreendimentoRepository.findByIdAndEmpresaId(id, empresaId)
+                .orElseThrow(() -> new NotFoundException("Empreendimento não encontrado"));
+
+        campanhaRepository.deleteMaterialLinksByEmpreendimento(empresaId, id);
+        materialRepository.deleteByEmpresaIdAndEmpreendimento_Id(empresaId, id);
+        empreendimentoArquivoRepository.deleteByEmpresaIdAndEmpreendimentoId(empresaId, id);
+        empreendimentoRepository.delete(empreendimento);
+
+        auditService.log("DELETE_DEVELOPMENT", "EMPREENDIMENTO", empreendimento.getId(), httpRequest.getRemoteAddr());
     }
 
     private EmpreendimentoDtos.EmpreendimentoResponse toResponse(Empreendimento e) {

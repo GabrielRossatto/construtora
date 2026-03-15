@@ -1,17 +1,20 @@
 package com.construtora.services;
 
 import com.construtora.dtos.AuthDtos;
+import com.construtora.entities.Permission;
 import com.construtora.entities.UserAccount;
 import com.construtora.exceptions.ForbiddenException;
 import com.construtora.repositories.UserAccountRepository;
 import com.construtora.security.JwtTokenService;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Service
 public class AuthService {
@@ -29,9 +32,13 @@ public class AuthService {
     }
 
     public AuthDtos.LoginResponse login(AuthDtos.LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email(), request.senha())
-        );
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.email(), request.senha())
+            );
+        } catch (AuthenticationException ex) {
+            throw new ForbiddenException("Credenciais inválidas");
+        }
 
         UserAccount user = userAccountRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ForbiddenException("Credenciais inválidas"));
@@ -40,8 +47,13 @@ public class AuthService {
             throw new ForbiddenException("Usuário inativo");
         }
 
-        List<SimpleGrantedAuthority> authorities = user.getRole().getPermissions().stream()
-                .map(p -> new SimpleGrantedAuthority(p.getCode()))
+        List<SimpleGrantedAuthority> authorities = Stream.concat(
+                        user.getRole().getPermissions().stream(),
+                        user.getCustomPermissions().stream()
+                )
+                .map(Permission::getCode)
+                .distinct()
+                .map(SimpleGrantedAuthority::new)
                 .toList();
 
         String token = jwtTokenService.generateToken(

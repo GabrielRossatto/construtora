@@ -2,19 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 import AppLayout from '../layouts/AppLayout'
 import { useAuth } from '../hooks/useAuth'
 import { hubService } from '../services/hubService'
-
-const fotos = [
-  'https://images.unsplash.com/photo-1479839672679-a46483c0e7c8?w=800',
-  'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800',
-  'https://images.unsplash.com/photo-1460317442991-0ec209397118?w=800'
-]
+import semImagemEmpreendimento from '../assets/sem-imagem-empreendimento.svg'
 
 export default function EmpreendimentosPage() {
-  const { token } = useAuth()
+  const { token, hasPermission } = useAuth()
+  const canManageDevelopments = hasPermission('CREATE_DEVELOPMENT')
   const [items, setItems] = useState([])
   const carouselRef = useRef(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     hubService.empreendimentos(token).then(setItems).catch(() => {})
@@ -48,9 +46,23 @@ export default function EmpreendimentosPage() {
     el.scrollBy({ left: direction * amount, behavior: 'smooth' })
   }
 
+  async function confirmDelete() {
+    if (!itemToDelete || isDeleting) return
+    setIsDeleting(true)
+    try {
+      await hubService.excluirEmpreendimento(token, itemToDelete.id)
+      setItems((current) => current.filter((item) => item.id !== itemToDelete.id))
+      setItemToDelete(null)
+    } catch (error) {
+      alert(error.message || 'Não foi possível excluir o empreendimento')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <AppLayout title="Empreendimentos" action={<span className="text-4xl font-semibold">Novo ＋</span>}>
-      <section className="relative mb-2">
+      <section className="relative mb-0">
         {canScrollLeft && (
           <button
             type="button"
@@ -64,14 +76,29 @@ export default function EmpreendimentosPage() {
 
         <div
           ref={carouselRef}
-          className="flex gap-4 overflow-x-auto pb-1 px-1 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex items-start gap-4 overflow-x-auto pb-0 px-1 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          {items.map((item, idx) => (
-            <article key={item.id} className="pill-card rounded-3xl pt-3 px-3 pb-0 text-center w-[320px] shrink-0">
-              <img src={item.fotoPerfilUrl || fotos[idx % fotos.length]} alt={item.nome} className="rounded-3xl w-full h-[440px] object-cover" />
-              <h3 className="text-3xl font-semibold mt-2 leading-tight">{item.nome}</h3>
+          {items.map((item) => (
+            <article key={item.id} className="pill-card relative rounded-3xl pt-3 px-3 pb-2 text-center w-[320px] shrink-0">
+              {canManageDevelopments && (
+                <button
+                  type="button"
+                  aria-label={`Excluir ${item.nome}`}
+                  onClick={() => setItemToDelete(item)}
+                  className="absolute right-4 top-4 z-10 h-9 w-9 rounded-full bg-white/85 text-slate-700 shadow-md grid place-items-center transition-transform duration-100 ease-in-out hover:scale-110"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4h8v2" />
+                    <path d="M19 6l-1 14H6L5 6" />
+                    <path d="M10 11v6M14 11v6" />
+                  </svg>
+                </button>
+              )}
+              <img src={item.fotoPerfilUrl || semImagemEmpreendimento} alt={item.nome} className="rounded-3xl w-full h-[450px] object-cover" />
+              <h3 className="text-[1.35rem] font-semibold mt-2 leading-6 h-12 line-clamp-2 overflow-hidden break-words">{item.nome}</h3>
               <button
-                className="bg-hubBlueDeep text-white px-4 py-1 rounded-xl text-xl mt-1 mb-0 leading-none inline-flex items-center"
+                className="bg-hubBlueDeep text-white px-4 py-1 rounded-xl text-xl mt-2 mb-1 leading-none inline-flex items-center"
                 onClick={() => window.open(`${window.location.origin}/public/materiais/${item.publicToken}`, '_blank', 'noopener,noreferrer')}
               >
                 Consultar material
@@ -92,7 +119,34 @@ export default function EmpreendimentosPage() {
         )}
       </section>
 
-      <div className="pill-card rounded-3xl p-5 text-4xl font-bold">Tabelas de Vendas</div>
+      <div className="pill-card rounded-3xl p-5 text-4xl font-bold mt-[30px]">Tabelas de Vendas</div>
+
+      {canManageDevelopments && itemToDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-7 shadow-2xl">
+            <h2 className="text-xl font-semibold text-slate-900 mb-2">Deseja mesmo excluir este empreendimento?</h2>
+            <p className="text-sm text-slate-600 mb-6 line-clamp-2">{itemToDelete.nome}</p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="px-5 py-2 rounded-xl bg-red-600 text-white text-base font-medium hover:bg-red-700 disabled:opacity-70"
+              >
+                {isDeleting ? 'Excluindo...' : 'Sim'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setItemToDelete(null)}
+                disabled={isDeleting}
+                className="px-5 py-2 rounded-xl bg-hubBlueDeep text-white text-base font-semibold hover:opacity-95 disabled:opacity-70"
+              >
+                Não
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   )
 }

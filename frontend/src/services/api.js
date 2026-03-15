@@ -15,12 +15,17 @@ async function request(path, { method = 'GET', token, body, headers = {} } = {})
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}))
-    const message = errorBody.message || 'Erro ao processar requisição'
+    const validationMessage = errorBody.errors
+      ? Object.values(errorBody.errors)[0]
+      : null
+    const message = errorBody.message || validationMessage || 'Erro ao processar requisição'
     throw new Error(message)
   }
 
   if (response.status === 204) return null
-  return response.json()
+  const raw = await response.text()
+  if (!raw) return null
+  return JSON.parse(raw)
 }
 
 export const api = {

@@ -2,6 +2,25 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { hubService } from '../services/hubService'
 
+function sanitizeFileName(name) {
+  return (name || 'material')
+    .replace(/[\\/:*?"<>|]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function buildDownloadUrl(material) {
+  try {
+    const url = new URL(material.arquivoUrl)
+    const fileName = sanitizeFileName(material.titulo || 'material')
+    url.searchParams.set('response-content-disposition', `attachment; filename="${fileName}"`)
+    url.searchParams.set('response-content-type', 'application/octet-stream')
+    return url.toString()
+  } catch {
+    return material.arquivoUrl
+  }
+}
+
 export default function PublicMateriaisPage() {
   const { publicToken } = useParams()
   const [data, setData] = useState(null)
@@ -40,7 +59,7 @@ export default function PublicMateriaisPage() {
           <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-8 items-center">
             <div>
               <p className="text-sm uppercase tracking-[0.22em] text-white/80">Apresentacao Comercial</p>
-              <h1 className="text-4xl md:text-5xl font-semibold mt-2">{data.empreendimentoNome}</h1>
+              <h1 className="text-3xl md:text-4xl font-semibold mt-2">{data.empreendimentoNome}</h1>
               <p className="text-base md:text-lg mt-3 text-white/90 max-w-2xl">
                 Acesse conteudos oficiais deste empreendimento: campanhas ativas, materiais de apoio e arquivos de divulgacao.
               </p>
@@ -122,7 +141,7 @@ export default function PublicMateriaisPage() {
                     Abrir material
                   </a>
                   <a
-                    href={m.arquivoUrl}
+                    href={buildDownloadUrl(m)}
                     download
                     className="inline-flex items-center bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition"
                   >

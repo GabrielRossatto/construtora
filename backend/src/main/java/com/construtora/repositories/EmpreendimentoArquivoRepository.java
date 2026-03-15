@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface EmpreendimentoArquivoRepository extends JpaRepository<EmpreendimentoArquivo, Long> {
     List<EmpreendimentoArquivo> findByEmpresaIdAndEmpreendimentoId(Long empresaId, Long empreendimentoId);
+    void deleteByEmpresaIdAndEmpreendimentoId(Long empresaId, Long empreendimentoId);
 }

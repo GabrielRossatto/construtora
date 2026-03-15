@@ -1,16 +1,28 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 
-const menu = [
-  { label: 'Dashboard', to: '/dashboard' },
-  { label: 'Empreendimentos', to: '/empreendimentos' },
-  { label: 'Cadastros', to: '/cadastros' },
-  { label: 'Usuários', to: '/usuarios' },
-  { label: 'Campanhas', to: '/campanhas' },
-  { label: 'IA HUB', to: '/ia-hub' }
-]
+const CREATE_PERMISSIONS = ['CREATE_DEVELOPMENT', 'CREATE_USER', 'CREATE_MATERIAL']
 
 export default function Sidebar({ user }) {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { logout, hasPermission } = useAuth()
+  const canAccessCadastros = CREATE_PERMISSIONS.some(hasPermission)
+  const canAccessUsuarios = hasPermission('VIEW_USER')
+  const menu = [
+    { label: 'Dashboard', to: '/dashboard' },
+    { label: 'Empreendimentos', to: '/empreendimentos' },
+    ...(canAccessCadastros ? [{ label: 'Cadastros', to: '/cadastros' }] : []),
+    ...(canAccessUsuarios ? [{ label: 'Usuários', to: '/usuarios' }] : []),
+    { label: 'Campanhas', to: '/campanhas' },
+    { label: 'Meus dados', to: '/meus-dados' },
+    { label: 'IA HUB', to: '/ia-hub' }
+  ]
+
+  function handleLogout() {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <aside className="sidebar-gradient w-72 min-h-screen text-white relative">
@@ -39,7 +51,16 @@ export default function Sidebar({ user }) {
         })}
       </nav>
 
-      <div className="absolute left-0 right-0 bottom-6 text-center text-[1.35rem] opacity-85">Suporte</div>
+      <div className="absolute left-0 right-0 bottom-6 text-center">
+        <div className="text-[1.35rem] opacity-85">Suporte</div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="mt-3 px-6 py-1 rounded-full pill-tab text-hubBlueDeep text-[1.2rem] font-semibold transition-transform duration-200 ease-out hover:scale-[1.04]"
+        >
+          Sair
+        </button>
+      </div>
     </aside>
   )
 }

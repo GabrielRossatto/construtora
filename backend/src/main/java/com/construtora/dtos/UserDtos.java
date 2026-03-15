@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.util.List;
+
 public class UserDtos {
 
     public record CreateUserRequest(
@@ -13,7 +15,8 @@ public class UserDtos {
             @NotBlank @Email @Size(max = 150) String email,
             @Size(max = 30) String telefone,
             @NotBlank @Size(min = 8, max = 100) String senha,
-            @NotNull RoleName role
+            @NotNull RoleName role,
+            List<String> permissionCodes
     ) {}
 
     public record UserResponse(
@@ -23,6 +26,22 @@ public class UserDtos {
             String email,
             String telefone,
             String role,
-            Boolean ativo
+            Boolean ativo,
+            List<String> permissionCodes
+    ) {}
+
+    public record MyProfileResponse(
+            Long id,
+            String nome,
+            String email,
+            String telefone,
+            String role
+    ) {}
+
+    public record UpdateMyProfileRequest(
+            @NotBlank @Size(max = 120) String nome,
+            @NotBlank @Email @Size(max = 150) String email,
+            @Size(max = 30) String telefone,
+            @Size(min = 8, max = 100) String senha
     ) {}
 }

@@ -3,7 +3,9 @@ package com.construtora.entities;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.HashSet;
 import java.time.Instant;
+import java.util.Set;
 
 @Entity
 @Table(name = "user_account")
@@ -36,6 +38,15 @@ public class UserAccount {
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")
     private Role role;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_permission",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "permission_id")
+    )
+    @Builder.Default
+    private Set<Permission> customPermissions = new HashSet<>();
 
     @Column(nullable = false)
     private Boolean ativo;

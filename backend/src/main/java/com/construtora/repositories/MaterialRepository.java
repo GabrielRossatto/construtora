@@ -10,4 +10,5 @@ public interface MaterialRepository extends JpaRepository<Material, Long> {
     List<Material> findByEmpresaId(Long empresaId);
     List<Material> findByEmpresaIdAndEmpreendimento_Id(Long empresaId, Long empreendimentoId);
     Optional<Material> findByIdAndEmpresaId(Long id, Long empresaId);
+    void deleteByEmpresaIdAndEmpreendimento_Id(Long empresaId, Long empreendimentoId);
 }

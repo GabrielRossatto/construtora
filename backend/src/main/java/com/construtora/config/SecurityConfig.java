@@ -1,6 +1,7 @@
 package com.construtora.config;
 
 import com.construtora.security.JwtAuthenticationFilter;
+import com.construtora.entities.Permission;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +28,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.construtora.repositories.UserAccountRepository;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 @Configuration
 @EnableMethodSecurity
@@ -66,7 +68,13 @@ public class SecurityConfig {
                 .map(user -> User.builder()
                         .username(user.getEmail())
                         .password(user.getSenhaHash())
-                        .authorities(user.getRole().getPermissions().stream().map(p -> p.getCode()).toArray(String[]::new))
+                        .authorities(Stream.concat(
+                                        user.getRole().getPermissions().stream(),
+                                        user.getCustomPermissions().stream()
+                                )
+                                .map(Permission::getCode)
+                                .distinct()
+                                .toArray(String[]::new))
                         .roles(user.getRole().getName().name())
                         .disabled(!Boolean.TRUE.equals(user.getAtivo()))
                         .build())

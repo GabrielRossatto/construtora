@@ -7,11 +7,18 @@ import UsuariosPage from './pages/UsuariosPage'
 import CampanhasPage from './pages/CampanhasPage'
 import IaHubPage from './pages/IaHubPage'
 import PublicMateriaisPage from './pages/PublicMateriaisPage'
+import MeusDadosPage from './pages/MeusDadosPage'
 import { useAuth } from './hooks/useAuth'
 
-function ProtectedRoute({ children }) {
-  const { isAuthenticated } = useAuth()
-  return isAuthenticated ? children : <Navigate to="/login" replace />
+const CREATE_PERMISSIONS = ['CREATE_DEVELOPMENT', 'CREATE_USER', 'CREATE_MATERIAL']
+
+function ProtectedRoute({ children, requireAnyPermission = null }) {
+  const { isAuthenticated, hasPermission } = useAuth()
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (requireAnyPermission && !requireAnyPermission.some(hasPermission)) {
+    return <Navigate to="/dashboard" replace />
+  }
+  return children
 }
 
 export default function App() {
@@ -22,8 +29,23 @@ export default function App() {
 
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route path="/empreendimentos" element={<ProtectedRoute><EmpreendimentosPage /></ProtectedRoute>} />
-      <Route path="/cadastros" element={<ProtectedRoute><CadastrosPage /></ProtectedRoute>} />
-      <Route path="/usuarios" element={<ProtectedRoute><UsuariosPage /></ProtectedRoute>} />
+      <Route
+        path="/cadastros"
+        element={
+          <ProtectedRoute requireAnyPermission={CREATE_PERMISSIONS}>
+            <CadastrosPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/usuarios"
+        element={
+          <ProtectedRoute requireAnyPermission={['VIEW_USER']}>
+            <UsuariosPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/meus-dados" element={<ProtectedRoute><MeusDadosPage /></ProtectedRoute>} />
       <Route path="/campanhas" element={<ProtectedRoute><CampanhasPage /></ProtectedRoute>} />
       <Route path="/ia-hub" element={<ProtectedRoute><IaHubPage /></ProtectedRoute>} />
 

@@ -14,7 +14,19 @@ export function AuthProvider({ children }) {
     auth,
     token: auth?.token ?? null,
     user: auth?.user ?? null,
+    permissions: auth?.user?.permissions ?? [],
     isAuthenticated: Boolean(auth?.token),
+    hasPermission(permission) {
+      return Boolean(auth?.user?.permissions?.includes(permission))
+    },
+    updateUser(userData) {
+      setAuth((current) => {
+        if (!current) return current
+        const next = { ...current, user: { ...current.user, ...userData } }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+        return next
+      })
+    },
     login(data) {
       setAuth(data)
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
