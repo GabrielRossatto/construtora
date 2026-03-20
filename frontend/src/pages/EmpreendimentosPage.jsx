@@ -67,7 +67,7 @@ export default function EmpreendimentosPage() {
           <button
             type="button"
             onClick={() => scrollByCards(-1)}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 h-12 w-12 rounded-full bg-gradient-to-br from-white to-sky-100 text-hubBlueDeep shadow-soft border border-white/80 text-2xl"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 h-12 w-12 rounded-full bg-gradient-to-br from-pageSurface to-sky-100 text-hubBlueDeep shadow-soft border border-slate-200 text-2xl"
             aria-label="Ver empreendimentos anteriores"
           >
             ‹
@@ -85,7 +85,7 @@ export default function EmpreendimentosPage() {
                   type="button"
                   aria-label={`Excluir ${item.nome}`}
                   onClick={() => setItemToDelete(item)}
-                  className="absolute right-4 top-4 z-10 h-9 w-9 rounded-full bg-white/85 text-slate-700 shadow-md grid place-items-center transition-transform duration-100 ease-in-out hover:scale-110"
+                  className="absolute right-4 top-4 z-10 h-9 w-9 rounded-full bg-white text-slate-700 shadow-md grid place-items-center transition-transform duration-100 ease-in-out hover:scale-110"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
                     <path d="M3 6h18" />
@@ -111,7 +111,7 @@ export default function EmpreendimentosPage() {
           <button
             type="button"
             onClick={() => scrollByCards(1)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 h-12 w-12 rounded-full bg-gradient-to-br from-white to-sky-100 text-hubBlueDeep shadow-soft border border-white/80 text-2xl"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 h-12 w-12 rounded-full bg-gradient-to-br from-pageSurface to-sky-100 text-hubBlueDeep shadow-soft border border-slate-200 text-2xl"
             aria-label="Ver próximos empreendimentos"
           >
             ›

@@ -36,14 +36,14 @@ export default function Sidebar({ user }) {
         </div>
       </div>
 
-      <nav className="px-8 mt-6 text-[1.5rem] leading-tight space-y-2">
+      <nav className="px-[14px] mt-6 text-[1.5rem] leading-tight space-y-2">
         {menu.map((item) => {
           const active = location.pathname === item.to
           return (
             <Link
               key={item.to}
               to={item.to}
-              className={`block px-5 py-1 rounded-full transition-transform duration-200 ease-out hover:scale-[1.04] ${active ? 'pill-tab text-hubBlueDeep' : ''}`}
+              className={`block w-full px-[34px] py-1 rounded-full transition-transform duration-200 ease-out hover:scale-[1.04] ${active ? 'pill-tab text-hubBlueDeep' : ''}`}
             >
               {item.label}
             </Link>

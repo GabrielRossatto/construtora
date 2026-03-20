@@ -7,7 +7,13 @@ const STORAGE_KEY = 'hub_auth'
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
-    return saved ? JSON.parse(saved) : null
+    if (!saved) return null
+    const parsed = JSON.parse(saved)
+    if (parsed?.user?.role === 'CORRETOR') {
+      localStorage.removeItem(STORAGE_KEY)
+      return null
+    }
+    return parsed
   })
 
   const value = useMemo(() => ({

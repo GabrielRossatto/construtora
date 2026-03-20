@@ -32,6 +32,10 @@ public class AuthService {
     }
 
     public AuthDtos.LoginResponse login(AuthDtos.LoginRequest request) {
+        if (userAccountRepository.countLegacyCorretorByEmail(request.email()) > 0) {
+            throw new ForbiddenException("Perfil de corretor não possui mais acesso");
+        }
+
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.email(), request.senha())

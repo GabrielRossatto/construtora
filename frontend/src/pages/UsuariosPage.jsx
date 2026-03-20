@@ -14,7 +14,7 @@ export default function UsuariosPage() {
   const isAdminMaster = user?.role === 'ADMIN_MASTER'
   const canCreateUser = hasPermission('CREATE_USER')
   const [usuarios, setUsuarios] = useState([])
-  const [form, setForm] = useState({ nome: '', email: '', telefone: '', senha: '', role: 'CORRETOR', permissionCodes: [] })
+  const [form, setForm] = useState({ nome: '', email: '', telefone: '', senha: '', role: 'TIME_COMERCIAL', permissionCodes: [] })
 
   async function carregar() {
     const data = await hubService.usuarios(token)
@@ -28,7 +28,7 @@ export default function UsuariosPage() {
     try {
       const payload = isAdminMaster ? form : { ...form, permissionCodes: [] }
       await hubService.criarUsuario(token, payload)
-      setForm({ nome: '', email: '', telefone: '', senha: '', role: 'CORRETOR', permissionCodes: [] })
+      setForm({ nome: '', email: '', telefone: '', senha: '', role: 'TIME_COMERCIAL', permissionCodes: [] })
       await carregar()
       alert('Usuário criado com sucesso')
     } catch (error) {
@@ -49,7 +49,6 @@ export default function UsuariosPage() {
             <select className="input-hub rounded-xl p-3 text-xl" value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}>
               <option value="ADMIN_MASTER">ADMIN MASTER</option>
               <option value="TIME_COMERCIAL">TIME COMERCIAL</option>
-              <option value="CORRETOR">CORRETOR</option>
             </select>
             {isAdminMaster && (
               <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-3">

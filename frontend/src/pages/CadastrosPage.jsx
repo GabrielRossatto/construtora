@@ -23,7 +23,7 @@ export default function CadastrosPage() {
   const [openSection, setOpenSection] = useState(null)
   const [payload, setPayload] = useState({ titulo: '', tipoArquivo: 'PDF', empreendimentoId: '', descricao: '' })
   const [file, setFile] = useState(null)
-  const [userPayload, setUserPayload] = useState({ nome: '', email: '', telefone: '', senha: '', role: 'CORRETOR', permissionCodes: [] })
+  const [userPayload, setUserPayload] = useState({ nome: '', email: '', telefone: '', senha: '', role: 'TIME_COMERCIAL', permissionCodes: [] })
   const [empreendimentoPayload, setEmpreendimentoPayload] = useState({ nome: '', descricao: '', fotoPerfilUrl: '' })
   const [fotoEmpreendimento, setFotoEmpreendimento] = useState(null)
   const fotoEmpreendimentoInputRef = useRef(null)
@@ -64,7 +64,7 @@ export default function CadastrosPage() {
     try {
       const payloadToSend = isAdminMaster ? userPayload : { ...userPayload, permissionCodes: [] }
       await hubService.criarUsuario(token, payloadToSend)
-      setUserPayload({ nome: '', email: '', telefone: '', senha: '', role: 'CORRETOR', permissionCodes: [] })
+      setUserPayload({ nome: '', email: '', telefone: '', senha: '', role: 'TIME_COMERCIAL', permissionCodes: [] })
       alert('Usuário criado com sucesso')
     } catch (error) {
       alert(error.message || 'Não foi possível criar o usuário')
@@ -144,7 +144,6 @@ export default function CadastrosPage() {
                     <select className="input-hub w-full rounded-2xl p-3" value={userPayload.role} onChange={(e) => setUserPayload((p) => ({ ...p, role: e.target.value }))}>
                       <option value="ADMIN_MASTER">ADMIN MASTER</option>
                       <option value="TIME_COMERCIAL">TIME COMERCIAL</option>
-                      <option value="CORRETOR">CORRETOR</option>
                     </select>
                   </Field>
                   {isAdminMaster && (

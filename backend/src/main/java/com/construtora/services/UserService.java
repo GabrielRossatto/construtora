@@ -3,6 +3,7 @@ package com.construtora.services;
 import com.construtora.dtos.UserDtos;
 import com.construtora.entities.Permission;
 import com.construtora.entities.Role;
+import com.construtora.entities.RoleName;
 import com.construtora.entities.UserAccount;
 import com.construtora.exceptions.BadRequestException;
 import com.construtora.exceptions.NotFoundException;
@@ -54,6 +55,10 @@ public class UserService {
             throw new BadRequestException("Email já cadastrado");
         }
 
+        if (request.role() == RoleName.CORRETOR) {
+            throw new BadRequestException("Perfil de corretor não está mais disponível");
+        }
+
         Role role = roleRepository.findByName(request.role())
                 .orElseThrow(() -> new BadRequestException("Role inválida"));
 
@@ -75,7 +80,7 @@ public class UserService {
     }
 
     public List<UserDtos.UserResponse> list() {
-        return userAccountRepository.findByEmpresaId(currentSessionService.empresaId())
+        return userAccountRepository.findVisibleByEmpresaId(currentSessionService.empresaId())
                 .stream().map(this::toResponse).toList();
     }
 

@@ -35,8 +35,8 @@ export default function PublicMateriaisPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
-        <div className="max-w-xl w-full text-center rounded-3xl p-10 bg-white shadow-soft border border-slate-200">
+      <div className="min-h-screen bg-pageSurface flex items-center justify-center p-6">
+        <div className="max-w-xl w-full text-center rounded-3xl p-10 bg-pageSurface shadow-soft border border-slate-200">
           <h1 className="text-3xl font-bold mb-2 text-slate-900">Material indisponível</h1>
           <p className="text-lg text-slate-600">{error}</p>
         </div>
@@ -46,14 +46,14 @@ export default function PublicMateriaisPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+      <div className="min-h-screen bg-pageSurface flex items-center justify-center">
         <p className="text-xl text-slate-700">Carregando apresentação...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-pageSurface to-pageSurface">
       <div className="max-w-7xl mx-auto p-6 md:p-10">
         <header className="rounded-3xl p-7 md:p-10 mb-6 bg-gradient-to-r from-hubBlueDeep via-hubBlue to-sky-500 text-white shadow-soft">
           <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-8 items-center">
@@ -92,7 +92,7 @@ export default function PublicMateriaisPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {data.campanhas.map((c) => (
-                <article key={c.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <article key={c.id} className="rounded-2xl border border-slate-200 bg-pageSurface p-5 shadow-sm">
                   <p className="text-xs uppercase tracking-wide text-hubBlue">Campanha</p>
                   <h3 className="text-xl font-semibold text-slate-900 mt-1">{c.titulo}</h3>
                   <p className="text-sm text-slate-600 mt-2 line-clamp-3">{c.descricao}</p>
@@ -113,14 +113,14 @@ export default function PublicMateriaisPage() {
           </div>
 
           {data.materiais.length === 0 && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-slate-500">
+            <div className="rounded-2xl border border-slate-200 bg-pageSurface p-8 text-slate-500">
               Nenhum material publicado ate o momento.
             </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {data.materiais.map((m) => (
-              <article key={m.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <article key={m.id} className="rounded-2xl border border-slate-200 bg-pageSurface p-5 shadow-sm">
                 <div className="flex items-center justify-between gap-3 mb-2">
                   <h3 className="text-xl font-semibold text-slate-900">{m.titulo}</h3>
                   <span className="text-xs bg-sky-100 text-sky-700 rounded-full px-3 py-1 font-medium">

@@ -5,6 +5,7 @@ import com.construtora.entities.Role;
 import com.construtora.entities.RoleName;
 import com.construtora.repositories.PermissionRepository;
 import com.construtora.repositories.RoleRepository;
+import com.construtora.repositories.UserAccountRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,7 +17,9 @@ import java.util.Set;
 public class DataInitializer {
 
     @Bean
-    CommandLineRunner seedRbac(PermissionRepository permissionRepository, RoleRepository roleRepository) {
+    CommandLineRunner seedRbac(PermissionRepository permissionRepository,
+                               RoleRepository roleRepository,
+                               UserAccountRepository userAccountRepository) {
         return args -> {
             List<String> permissions = List.of(
                     "CREATE_USER", "VIEW_USER",
@@ -43,9 +46,8 @@ public class DataInitializer {
                     "CREATE_MATERIAL", "VIEW_MATERIAL",
                     "VIEW_CAMPAIGN", "UPLOAD_FILE"
             ));
-            createOrUpdateRole(roleRepository, permissionRepository, RoleName.CORRETOR, "Acesso leitura", List.of(
-                    "VIEW_DEVELOPMENT", "VIEW_MATERIAL", "VIEW_CAMPAIGN"
-            ));
+
+            userAccountRepository.deactivateLegacyCorretorUsers();
         };
     }
 

@@ -35,9 +35,8 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="glass-panel rounded-[2rem] p-8 max-w-[520px] w-full justify-self-center">
-          <div className="grid grid-cols-2 gap-3 mb-10">
-            <button type="button" className="pill-tab rounded-full py-2 text-3xl">Login</button>
-            <button type="button" className="pill-tab rounded-full py-2 text-3xl opacity-80">Primeiro acesso</button>
+          <div className="mb-10">
+            <button type="button" className="pill-tab rounded-full py-2 text-3xl w-full">Login</button>
           </div>
 
           <label className="block mb-6 text-4xl font-semibold">

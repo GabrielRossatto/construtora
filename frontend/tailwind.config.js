@@ -7,7 +7,8 @@ export default {
         hubBlue: '#1570be',
         hubBlueDark: '#0f4d86',
         hubBlueDeep: '#07366a',
-        pageGray: '#eff1f4'
+        pageGray: '#F1F5F9',
+        pageSurface: '#F1F5F9'
       },
       fontFamily: {
         hub: ['Helvetica Neue', 'Arial', 'sans-serif']

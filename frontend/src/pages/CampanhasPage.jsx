@@ -40,7 +40,7 @@ export default function CampanhasPage() {
           <textarea className="input-hub w-full rounded-xl p-3 text-xl min-h-24" placeholder="Descrição" value={form.descricao} onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))} />
           <div className="flex flex-wrap gap-2 text-lg">
             {materiais.map((m) => (
-              <button type="button" key={m.id} className={`px-3 py-1 rounded-full border ${form.materialIds.includes(m.id) ? 'bg-hubBlueDeep text-white' : 'bg-white/70'}`} onClick={() => toggleMaterial(m.id)}>
+              <button type="button" key={m.id} className={`px-3 py-1 rounded-full border ${form.materialIds.includes(m.id) ? 'bg-hubBlueDeep text-white' : 'bg-pageSurface'}`} onClick={() => toggleMaterial(m.id)}>
                 {m.titulo}
               </button>
             ))}

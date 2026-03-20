@@ -42,6 +42,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String email = claims.getSubject();
                 String role = claims.get("role", String.class);
 
+                if ("CORRETOR".equals(role)) {
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "Perfil não permitido");
+                    return;
+                }
+
                 List<String> permissions = claims.get("permissions", List.class);
                 List<SimpleGrantedAuthority> authorities = new ArrayList<>();
                 if (permissions != null) {
