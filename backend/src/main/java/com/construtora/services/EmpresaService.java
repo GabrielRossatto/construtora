@@ -40,6 +40,8 @@ public class EmpresaService {
 
     @Transactional
     public EmpresaDtos.EmpresaResponse createEmpresa(EmpresaDtos.CreateEmpresaRequest request) {
+        validatePublicPlan(request.plano());
+
         empresaRepository.findByCnpj(request.cnpj()).ifPresent(e -> {
             throw new BadRequestException("CNPJ já cadastrado");
         });
@@ -48,10 +50,37 @@ public class EmpresaService {
             throw new BadRequestException("Email do administrador já cadastrado");
         }
 
+        Empresa empresa = createEmpresaInterna(
+                request.nome(),
+                request.cnpj(),
+                request.plano(),
+                request.adminNome(),
+                request.adminEmail(),
+                request.adminTelefone(),
+                request.adminSenha()
+        );
+
+        return toResponse(empresa);
+    }
+
+    private void validatePublicPlan(com.construtora.entities.PlanoEmpresa plano) {
+        if (plano == com.construtora.entities.PlanoEmpresa.ENTERPRISE) {
+            throw new BadRequestException("Plano indisponível para cadastro público");
+        }
+    }
+
+    @Transactional
+    public Empresa createEmpresaInterna(String nome,
+                                        String cnpj,
+                                        com.construtora.entities.PlanoEmpresa plano,
+                                        String adminNome,
+                                        String adminEmail,
+                                        String adminTelefone,
+                                        String adminSenha) {
         Empresa empresa = empresaRepository.save(Empresa.builder()
-                .nome(request.nome())
-                .cnpj(request.cnpj())
-                .plano(request.plano())
+                .nome(nome)
+                .cnpj(cnpj)
+                .plano(plano)
                 .build());
 
         Role adminRole = roleRepository.findByName(RoleName.ADMIN_MASTER)
@@ -59,15 +88,15 @@ public class EmpresaService {
 
         userAccountRepository.save(UserAccount.builder()
                 .empresaId(empresa.getId())
-                .nome(request.adminNome())
-                .email(request.adminEmail())
-                .telefone(request.adminTelefone())
-                .senhaHash(passwordEncoder.encode(request.adminSenha()))
+                .nome(adminNome)
+                .email(adminEmail)
+                .telefone(adminTelefone)
+                .senhaHash(passwordEncoder.encode(adminSenha))
                 .role(adminRole)
                 .ativo(true)
                 .build());
 
-        return toResponse(empresa);
+        return empresa;
     }
 
     public EmpresaDtos.EmpresaResponse getMyEmpresa() {

@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
+import CadastroEmpresaPage from './pages/CadastroEmpresaPage'
 import DashboardPage from './pages/DashboardPage'
 import EmpreendimentosPage from './pages/EmpreendimentosPage'
 import CadastrosPage from './pages/CadastrosPage'
@@ -26,6 +27,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/cadastro-empresa" element={<CadastroEmpresaPage />} />
       <Route path="/materiais-publicos/:publicToken" element={<PublicMateriaisPage />} />
       <Route path="/tabela-vendas-publica/:publicToken" element={<PublicTabelaVendasPage />} />
 

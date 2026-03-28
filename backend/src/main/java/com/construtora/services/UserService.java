@@ -55,10 +55,6 @@ public class UserService {
             throw new BadRequestException("Email já cadastrado");
         }
 
-        if (request.role() == RoleName.CORRETOR) {
-            throw new BadRequestException("Perfil de corretor não está mais disponível");
-        }
-
         Role role = roleRepository.findByName(request.role())
                 .orElseThrow(() -> new BadRequestException("Role inválida"));
 
@@ -80,7 +76,7 @@ public class UserService {
     }
 
     public List<UserDtos.UserResponse> list() {
-        return userAccountRepository.findVisibleByEmpresaId(currentSessionService.empresaId())
+        return userAccountRepository.findByEmpresaIdOrderByIdDesc(currentSessionService.empresaId())
                 .stream().map(this::toResponse).toList();
     }
 

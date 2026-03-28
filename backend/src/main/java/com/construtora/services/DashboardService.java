@@ -25,7 +25,7 @@ public class DashboardService {
 
         DashboardDtos.MetricResponse metrics = new DashboardDtos.MetricResponse(
                 empreendimentoRepository.countByEmpresaId(empresaId),
-                userAccountRepository.countVisibleByEmpresaId(empresaId)
+                userAccountRepository.countByEmpresaId(empresaId)
         );
 
         return new DashboardDtos.DashboardResponse(metrics);

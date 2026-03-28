@@ -1,6 +1,9 @@
 import { api } from './api'
 
 export const hubService = {
+  criarEmpresa(payload) {
+    return api.request('/api/empresas', { method: 'POST', body: payload })
+  },
   minhaEmpresa(token) {
     return api.request('/api/empresas/me', { token })
   },

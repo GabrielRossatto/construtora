@@ -23,7 +23,8 @@ body {
 .login-background {
   background:
     radial-gradient(60% 55% at 46% 17%, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.05) 40%, transparent 70%),
-    linear-gradient(112deg, #020202 0%, #151515 42%, #737373 80%, #f2f2f2 100%);
+    linear-gradient(rgba(0, 0, 0, 0.54), rgba(255, 255, 255, 0.1)),
+    url('./assets/background.jpeg') center/cover no-repeat;
 }
 
 .sidebar-gradient {
