@@ -1,22 +1,25 @@
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { hubService } from '../services/hubService'
 
 const CREATE_PERMISSIONS = ['CREATE_DEVELOPMENT', 'CREATE_USER', 'CREATE_MATERIAL']
 
 export default function Sidebar({ user }) {
   const location = useLocation()
   const navigate = useNavigate()
-  const { logout, hasPermission } = useAuth()
+  const { logout, hasPermission, token } = useAuth()
+  const [iconeUrl, setIconeUrl] = useState(null)
   const canAccessCadastros = CREATE_PERMISSIONS.some(hasPermission)
   const canAccessUsuarios = hasPermission('VIEW_USER')
   const menu = [
     { label: 'Dashboard', to: '/dashboard' },
+    { label: 'Institucional', to: '/institucional' },
     { label: 'Empreendimentos', to: '/empreendimentos' },
     ...(canAccessCadastros ? [{ label: 'Cadastros', to: '/cadastros' }] : []),
+    { label: 'IA HUB', to: '/ia-hub' },
     ...(canAccessUsuarios ? [{ label: 'Usuários', to: '/usuarios' }] : []),
-    { label: 'Campanhas', to: '/campanhas' },
-    { label: 'Meus dados', to: '/meus-dados' },
-    { label: 'IA HUB', to: '/ia-hub' }
+    { label: 'Meus dados', to: '/meus-dados' }
   ]
 
   function handleLogout() {
@@ -24,19 +27,29 @@ export default function Sidebar({ user }) {
     navigate('/login', { replace: true })
   }
 
+  useEffect(() => {
+    hubService.minhaEmpresa(token)
+      .then((data) => setIconeUrl(data?.iconeUrl || null))
+      .catch(() => setIconeUrl(null))
+  }, [token])
+
   return (
     <aside className="sidebar-gradient w-72 min-h-screen text-white relative">
       <div className="p-5">
-        <div className="glass-panel rounded-2xl p-7 text-center">
-          <h2 className="text-[1.95rem] font-light italic leading-8">Commercial</h2>
-          <h2 className="text-[1.95rem] font-bold leading-8">HUB</h2>
-          <p className="mt-5 font-semibold text-base">{user?.nome || 'Neymar Jr.'}</p>
-          <p className="text-base leading-6">Gestor Comercial</p>
-          <p className="text-base leading-6">Acesso master</p>
+        <div className="rounded-2xl px-0 py-4">
+          <div className="mx-auto h-56 w-56 overflow-hidden rounded-full">
+            {iconeUrl ? (
+              <img
+                src={iconeUrl}
+                alt="Ícone da empresa"
+                className="h-full w-full object-cover"
+              />
+            ) : null}
+          </div>
         </div>
       </div>
 
-      <nav className="px-[14px] mt-6 text-[1.5rem] leading-tight space-y-2">
+      <nav className="px-[14px] mt-6 text-[1.3rem] leading-tight space-y-2">
         {menu.map((item) => {
           const active = location.pathname === item.to
           return (

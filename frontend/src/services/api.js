@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+const BASE_URL = import.meta.env.VITE_API_URL || ''
 
 async function request(path, { method = 'GET', token, body, headers = {} } = {}) {
   const isFormData = body instanceof FormData

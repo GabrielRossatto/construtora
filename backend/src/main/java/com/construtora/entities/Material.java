@@ -21,6 +21,10 @@ public class Material {
     @Column(name = "empresa_id", nullable = false)
     private Long empresaId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "empresa_id", insertable = false, updatable = false)
+    private Empresa empresa;
+
     @ManyToOne
     @JoinColumn(name = "empreendimento_id")
     private Empreendimento empreendimento;
@@ -35,7 +39,13 @@ public class Material {
     @Column(name = "arquivo_url", nullable = false, length = 500)
     private String arquivoUrl;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(name = "pasta_destino", length = 180)
+    private String pastaDestino;
+
+    @Column(name = "caminho_relativo", length = 500)
+    private String caminhoRelativo;
+
+    @Column(columnDefinition = "TEXT")
     private String descricao;
 
     @Column(name = "tamanho_bytes", nullable = false)

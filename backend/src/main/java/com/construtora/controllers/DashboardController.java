@@ -18,20 +18,14 @@ public class DashboardController {
     }
 
     @GetMapping
-    @PreAuthorize("@permissionService.hasPermission(authentication, 'VIEW_CAMPAIGN')")
+    @PreAuthorize("@permissionService.hasPermission(authentication, 'VIEW_DEVELOPMENT')")
     public DashboardDtos.DashboardResponse getDashboard() {
         return dashboardService.getDashboard();
     }
 
     @GetMapping("/metrics")
-    @PreAuthorize("@permissionService.hasPermission(authentication, 'VIEW_CAMPAIGN')")
+    @PreAuthorize("@permissionService.hasPermission(authentication, 'VIEW_DEVELOPMENT')")
     public DashboardDtos.MetricResponse metrics() {
         return dashboardService.getDashboard().metrics();
-    }
-
-    @GetMapping("/recent-campaigns")
-    @PreAuthorize("@permissionService.hasPermission(authentication, 'VIEW_CAMPAIGN')")
-    public java.util.List<DashboardDtos.RecentCampaign> recentes() {
-        return dashboardService.getDashboard().recentes();
     }
 }

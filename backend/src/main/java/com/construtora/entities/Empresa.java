@@ -28,6 +28,12 @@ public class Empresa {
     @Column(nullable = false, length = 20)
     private PlanoEmpresa plano;
 
+    @Column(name = "icone_url", length = 500)
+    private String iconeUrl;
+
+    @Column(name = "icone_nome", length = 255)
+    private String iconeNome;
+
     @Column(name = "data_criacao", nullable = false, updatable = false)
     private Instant dataCriacao;
 

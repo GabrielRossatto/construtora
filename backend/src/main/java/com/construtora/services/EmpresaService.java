@@ -12,6 +12,7 @@ import com.construtora.repositories.UserAccountRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class EmpresaService {
@@ -21,17 +22,20 @@ public class EmpresaService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final CurrentSessionService currentSessionService;
+    private final FileStorageService fileStorageService;
 
     public EmpresaService(EmpresaRepository empresaRepository,
                           UserAccountRepository userAccountRepository,
                           RoleRepository roleRepository,
                           PasswordEncoder passwordEncoder,
-                          CurrentSessionService currentSessionService) {
+                          CurrentSessionService currentSessionService,
+                          FileStorageService fileStorageService) {
         this.empresaRepository = empresaRepository;
         this.userAccountRepository = userAccountRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.currentSessionService = currentSessionService;
+        this.fileStorageService = fileStorageService;
     }
 
     @Transactional
@@ -73,12 +77,31 @@ public class EmpresaService {
         return toResponse(empresa);
     }
 
+    @Transactional
+    public EmpresaDtos.EmpresaResponse updateMyIcon(MultipartFile icone) {
+        if (icone == null || icone.isEmpty()) {
+            throw new BadRequestException("Ícone obrigatório");
+        }
+
+        Long empresaId = currentSessionService.empresaId();
+        Empresa empresa = empresaRepository.findById(empresaId)
+                .orElseThrow(() -> new BadRequestException("Empresa não encontrada"));
+
+        var stored = fileStorageService.upload(empresaId, "empresa/icone", icone);
+        empresa.setIconeUrl(stored.url());
+        empresa.setIconeNome(icone.getOriginalFilename());
+
+        return toResponse(empresaRepository.save(empresa));
+    }
+
     private EmpresaDtos.EmpresaResponse toResponse(Empresa empresa) {
         return new EmpresaDtos.EmpresaResponse(
                 empresa.getId(),
                 empresa.getNome(),
                 empresa.getCnpj(),
                 empresa.getPlano(),
+                empresa.getIconeUrl(),
+                empresa.getIconeNome(),
                 empresa.getDataCriacao()
         );
     }

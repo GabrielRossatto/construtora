@@ -4,17 +4,15 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
-@Table(name = "campanha")
+@Table(name = "institucional_arquivo")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Campanha {
+public class InstitucionalArquivo {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,20 +21,21 @@ public class Campanha {
     @Column(name = "empresa_id", nullable = false)
     private Long empresaId;
 
-    @Column(nullable = false, length = 160)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "empresa_id", insertable = false, updatable = false)
+    private Empresa empresa;
+
+    @Column(nullable = false, length = 180)
     private String titulo;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String descricao;
+    @Column(name = "arquivo_url", length = 500)
+    private String arquivoUrl;
 
-    @ManyToMany
-    @JoinTable(
-            name = "campanha_material",
-            joinColumns = @JoinColumn(name = "campanha_id"),
-            inverseJoinColumns = @JoinColumn(name = "material_id")
-    )
-    @Builder.Default
-    private Set<Material> materiais = new HashSet<>();
+    @Column(name = "arquivo_nome", length = 255)
+    private String arquivoNome;
+
+    @Column(name = "link_url", length = 1000)
+    private String linkUrl;
 
     @Column(name = "data_criacao", nullable = false, updatable = false)
     private Instant dataCriacao;

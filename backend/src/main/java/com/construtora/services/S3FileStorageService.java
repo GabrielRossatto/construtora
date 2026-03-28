@@ -6,12 +6,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.PutBucketPolicyRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.IOException;
+import java.net.URI;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.UUID;
@@ -72,11 +74,24 @@ public class S3FileStorageService implements FileStorageService {
             s3Client.putObject(request, software.amazon.awssdk.core.sync.RequestBody.fromBytes(file.getBytes()));
 
             String url = resolvePublicUrl(key);
-            return new StoredFile(url, file.getContentType(), file.getSize());
+            return new StoredFile(key, url, file.getContentType(), file.getSize());
         } catch (IOException e) {
             throw new BadRequestException("Falha ao processar arquivo");
         } catch (Exception e) {
             throw new BadRequestException("Falha ao enviar arquivo para o storage");
+        }
+    }
+
+    @Override
+    public byte[] downloadByUrl(String fileUrl) {
+        try {
+            String key = extractKeyFromUrl(fileUrl);
+            return s3Client.getObjectAsBytes(GetObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .build()).asByteArray();
+        } catch (Exception e) {
+            throw new BadRequestException("Falha ao baixar arquivo do storage");
         }
     }
 
@@ -123,5 +138,18 @@ public class S3FileStorageService implements FileStorageService {
             return "%s/%s".formatted(normalized, key);
         }
         return "https://%s.s3.amazonaws.com/%s".formatted(bucket, key);
+    }
+
+    private String extractKeyFromUrl(String fileUrl) {
+        URI uri = URI.create(fileUrl);
+        String path = uri.getPath() == null ? "" : uri.getPath();
+        String prefix = "/" + bucket + "/";
+        if (path.startsWith(prefix)) {
+          return path.substring(prefix.length());
+        }
+        if (path.startsWith("/")) {
+          return path.substring(1);
+        }
+        return path;
     }
 }

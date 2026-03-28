@@ -38,7 +38,7 @@ export default function UsuariosPage() {
 
   return (
     <AppLayout title="Usuários">
-      <section className="pill-card rounded-3xl p-6 mb-8">
+      <section className="dashboard-card rounded-3xl p-6 mb-8">
         <h2 className="text-4xl font-semibold mb-4">Gerenciamento de usuários</h2>
         {canCreateUser ? (
           <form className="grid grid-cols-1 md:grid-cols-3 gap-4" onSubmit={submit}>
@@ -81,7 +81,7 @@ export default function UsuariosPage() {
         )}
       </section>
 
-      <section className="pill-card rounded-3xl p-6">
+      <section className="dashboard-card rounded-3xl p-6">
         <div className="space-y-3 text-xl">
           {usuarios.map((u) => (
             <div key={u.id} className="border border-white/70 rounded-xl px-3 py-2 flex justify-between">

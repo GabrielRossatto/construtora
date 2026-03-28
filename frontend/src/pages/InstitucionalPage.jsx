@@ -1,0 +1,242 @@
+import { useEffect, useState } from 'react'
+import AppLayout from '../layouts/AppLayout'
+import { useAuth } from '../hooks/useAuth'
+import { hubService } from '../services/hubService'
+
+const API_URL = import.meta.env.VITE_API_URL || ''
+
+export default function InstitucionalPage() {
+  const { token } = useAuth()
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [editingItem, setEditingItem] = useState(null)
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
+
+  useEffect(() => {
+    hubService.institucional(token)
+      .then((data) => setItems(data || []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [token])
+
+  async function baixarArquivo(item) {
+    const response = await fetch(`${API_URL}/api/institucional/${item.id}/download`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error('Não foi possível baixar o arquivo')
+    }
+
+    const blob = await response.blob()
+    const objectUrl = window.URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    const disposition = response.headers.get('Content-Disposition') || ''
+    const matchedName = disposition.match(/filename="(.+)"/)
+
+    anchor.href = objectUrl
+    anchor.download = matchedName?.[1] || item.titulo || 'arquivo-institucional'
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    window.URL.revokeObjectURL(objectUrl)
+  }
+
+  async function submitEdit(e) {
+    e.preventDefault()
+    if (!editingItem || savingEdit) return
+    try {
+      if (!editingItem.titulo.trim()) {
+        throw new Error('Preencha o título do item institucional.')
+      }
+      if (!editingItem.arquivo && !editingItem.link.trim()) {
+        const currentItem = items.find((item) => item.id === editingItem.id)
+        if (!currentItem?.arquivoUrl) {
+          throw new Error('Informe um arquivo ou um link para o item institucional.')
+        }
+      }
+
+      setSavingEdit(true)
+      const updated = await hubService.atualizarInstitucionalArquivo(
+        token,
+        editingItem.id,
+        { titulo: editingItem.titulo, link: editingItem.link },
+        editingItem.arquivo
+      )
+      setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      setEditingItem(null)
+      alert('Item institucional atualizado com sucesso')
+    } catch (error) {
+      alert(error.message || 'Não foi possível atualizar o item institucional')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  async function deleteItem(item) {
+    if (deletingId) return
+    if (!window.confirm(`Excluir "${item.titulo}"?`)) return
+    try {
+      setDeletingId(item.id)
+      await hubService.excluirInstitucionalArquivo(token, item.id)
+      setItems((current) => current.filter((entry) => entry.id !== item.id))
+    } catch (error) {
+      alert(error.message || 'Não foi possível excluir o item institucional')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  return (
+    <AppLayout title="Institucional">
+      {loading ? (
+        <section className="rounded-3xl border border-white/15 bg-[#2b2b2b] p-8 text-white/70">Carregando...</section>
+      ) : items.length === 0 ? (
+        <section className="rounded-3xl border border-white/15 bg-[#2b2b2b] p-8 text-white/75">
+          Nenhum arquivo institucional cadastrado ainda.
+        </section>
+      ) : (
+        <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {items.map((item) => (
+            <article key={item.id} className="relative rounded-3xl border border-white/15 bg-[#2b2b2b] p-8 text-white">
+              <div className="absolute right-5 top-5 z-10 flex gap-2">
+                <button
+                  type="button"
+                  aria-label={`Editar ${item.titulo}`}
+                  onClick={() => setEditingItem({ id: item.id, titulo: item.titulo || '', link: item.link || '', arquivo: null })}
+                  className="h-9 w-9 rounded-full bg-white text-black shadow-md grid place-items-center transition-transform duration-100 ease-in-out hover:scale-110"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+                    <path d="M4 20h4l10-10-4-4L4 16v4Z" />
+                    <path d="m12 6 4 4" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Excluir ${item.titulo}`}
+                  onClick={() => deleteItem(item)}
+                  disabled={deletingId === item.id}
+                  className="h-9 w-9 rounded-full bg-white text-black shadow-md grid place-items-center transition-transform duration-100 ease-in-out hover:scale-110 disabled:opacity-50"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4h8v2" />
+                    <path d="M19 6l-1 14H6L5 6" />
+                    <path d="M10 11v6M14 11v6" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/65">Institucional</p>
+              <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white">
+                {item.titulo}
+              </h2>
+              <p className="mt-4 text-sm uppercase tracking-[0.18em] text-white/55">
+                {new Date(item.dataCriacao).toLocaleDateString('pt-BR')}
+              </p>
+              <div className="mt-8">
+                <div className="flex flex-wrap gap-3">
+                  {item.arquivoUrl && (
+                    <>
+                      <a
+                        href={item.arquivoUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center rounded-full border border-white/15 bg-white/14 px-5 py-3 text-sm font-semibold text-white shadow-none"
+                      >
+                        Abrir arquivo
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => baixarArquivo(item).catch((error) => alert(error.message || 'Não foi possível baixar o arquivo'))}
+                        className="inline-flex items-center rounded-full border border-white/15 bg-black/25 px-5 py-3 text-sm font-semibold text-white shadow-none"
+                      >
+                        Baixar arquivo
+                      </button>
+                    </>
+                  )}
+                  {item.link && (
+                    <a
+                      href={item.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center rounded-full border border-white/15 bg-white/14 px-5 py-3 text-sm font-semibold text-white shadow-none"
+                    >
+                      Abrir link
+                    </a>
+                  )}
+                </div>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
+
+      {editingItem && (
+        <div className="fixed inset-0 z-50 bg-slate-950/35 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-semibold text-slate-900">Editar item institucional</h2>
+                <p className="mt-1 text-sm text-slate-600">Atualize o título, o link ou envie um novo arquivo.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !savingEdit && setEditingItem(null)}
+                className="text-slate-500 text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={submitEdit} className="mt-6 grid grid-cols-1 gap-4 text-lg">
+              <label className="block">
+                <span className="block mb-1">Título</span>
+                <input
+                  className="input-hub w-full rounded-2xl border border-slate-300 bg-white p-3"
+                  value={editingItem.titulo}
+                  onChange={(e) => setEditingItem((current) => ({ ...current, titulo: e.target.value }))}
+                />
+              </label>
+              <label className="block">
+                <span className="block mb-1">Link</span>
+                <input
+                  className="input-hub w-full rounded-2xl border border-slate-300 bg-white p-3"
+                  value={editingItem.link}
+                  onChange={(e) => setEditingItem((current) => ({ ...current, link: e.target.value }))}
+                />
+              </label>
+              <label className="block">
+                <span className="block mb-1">Novo arquivo institucional</span>
+                <input
+                  type="file"
+                  className="input-hub w-full rounded-2xl border border-slate-300 bg-white p-3"
+                  onChange={(e) => setEditingItem((current) => ({ ...current, arquivo: e.target.files?.[0] || null }))}
+                />
+              </label>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  disabled={savingEdit}
+                  className="px-5 py-2 rounded-xl bg-slate-100 text-slate-700 font-medium disabled:opacity-70"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="px-5 py-2 rounded-xl bg-hubBlueDeep text-white font-semibold disabled:opacity-70"
+                >
+                  {savingEdit ? 'Salvando...' : 'Salvar alterações'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </AppLayout>
+  )
+}

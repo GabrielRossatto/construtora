@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 import java.util.List;
 
@@ -31,9 +32,10 @@ public class EmpreendimentoController {
     @PreAuthorize("@permissionService.hasPermission(authentication, 'CREATE_DEVELOPMENT')")
     public EmpreendimentoDtos.EmpreendimentoResponse createWithPhoto(
             @RequestPart("payload") @Valid EmpreendimentoDtos.CreateEmpreendimentoRequest request,
-            @RequestPart(value = "fotoPerfil", required = false) MultipartFile fotoPerfil
+            @RequestPart(value = "fotoPerfil", required = false) MultipartFile fotoPerfil,
+            MultipartHttpServletRequest multipartRequest
     ) {
-        return empreendimentoService.create(request, fotoPerfil);
+        return empreendimentoService.create(request, fotoPerfil, multipartRequest.getFileMap());
     }
 
     @GetMapping
@@ -48,6 +50,26 @@ public class EmpreendimentoController {
                                                             @Valid @RequestBody EmpreendimentoDtos.UpdateEmpreendimentoRequest request,
                                                             HttpServletRequest httpRequest) {
         return empreendimentoService.update(id, request, httpRequest);
+    }
+
+    @PutMapping(path = "/{id}", consumes = {"multipart/form-data"})
+    @PreAuthorize("@permissionService.hasPermission(authentication, 'CREATE_DEVELOPMENT')")
+    public EmpreendimentoDtos.EmpreendimentoResponse updateWithPhoto(
+            @PathVariable Long id,
+            @RequestPart("payload") @Valid EmpreendimentoDtos.UpdateEmpreendimentoRequest request,
+            @RequestPart(value = "fotoPerfil", required = false) MultipartFile fotoPerfil,
+            MultipartHttpServletRequest multipartRequest,
+            HttpServletRequest httpRequest
+    ) {
+        return empreendimentoService.update(id, request, fotoPerfil, multipartRequest.getFileMap(), httpRequest);
+    }
+
+    @PatchMapping("/{id}/reajuste-valores")
+    @PreAuthorize("@permissionService.hasPermission(authentication, 'CREATE_DEVELOPMENT')")
+    public EmpreendimentoDtos.EmpreendimentoResponse reajustarValores(@PathVariable Long id,
+                                                                      @Valid @RequestBody EmpreendimentoDtos.ReajusteValoresRequest request,
+                                                                      HttpServletRequest httpRequest) {
+        return empreendimentoService.reajustarValores(id, request, httpRequest);
     }
 
     @PostMapping("/{id}/arquivos")

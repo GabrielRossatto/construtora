@@ -52,7 +52,7 @@ export default function MeusDadosPage() {
 
   return (
     <AppLayout title="Meus dados">
-      <section className="pill-card rounded-3xl p-6">
+      <section className="dashboard-card rounded-3xl p-6">
         {loading ? (
           <p className="text-xl">Carregando dados...</p>
         ) : (

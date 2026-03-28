@@ -25,7 +25,6 @@ public class DataInitializer {
                     "CREATE_USER", "VIEW_USER",
                     "CREATE_ENTERPRISE", "VIEW_ENTERPRISE",
                     "CREATE_MATERIAL", "VIEW_MATERIAL",
-                    "CREATE_CAMPAIGN", "VIEW_CAMPAIGN",
                     "CREATE_DEVELOPMENT", "VIEW_DEVELOPMENT",
                     "UPLOAD_FILE"
             );
@@ -44,7 +43,7 @@ public class DataInitializer {
                     "CREATE_USER", "VIEW_USER",
                     "CREATE_DEVELOPMENT", "VIEW_DEVELOPMENT",
                     "CREATE_MATERIAL", "VIEW_MATERIAL",
-                    "VIEW_CAMPAIGN", "UPLOAD_FILE"
+                    "UPLOAD_FILE"
             ));
 
             userAccountRepository.deactivateLegacyCorretorUsers();

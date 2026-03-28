@@ -23,6 +23,10 @@ public class UserAccount {
     @Column(name = "empresa_id", nullable = false)
     private Long empresaId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "empresa_id", insertable = false, updatable = false)
+    private Empresa empresa;
+
     @Column(nullable = false, length = 120)
     private String nome;
 

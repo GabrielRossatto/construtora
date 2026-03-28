@@ -20,17 +20,35 @@ public class MaterialController {
         this.materialService = materialService;
     }
 
-    @PostMapping(consumes = {"multipart/form-data"})
+    @PostMapping("/upload")
     @PreAuthorize("@permissionService.hasPermission(authentication, 'CREATE_MATERIAL')")
-    public MaterialDtos.MaterialResponse create(@RequestPart("payload") @Valid MaterialDtos.CreateMaterialRequest request,
-                                                @RequestPart("file") MultipartFile file,
+    public MaterialDtos.MaterialUploadResponse upload(@RequestParam("file") MultipartFile file) {
+        return materialService.uploadArquivo(file);
+    }
+
+    @PostMapping(consumes = "application/json")
+    @PreAuthorize("@permissionService.hasPermission(authentication, 'CREATE_MATERIAL')")
+    public MaterialDtos.MaterialResponse create(@RequestBody @Valid MaterialDtos.CreateMaterialRequest request,
                                                 HttpServletRequest httpRequest) {
-        return materialService.create(request, file, httpRequest);
+        return materialService.create(request, httpRequest);
     }
 
     @GetMapping
     @PreAuthorize("@permissionService.hasPermission(authentication, 'VIEW_MATERIAL')")
     public List<MaterialDtos.MaterialResponse> list() {
         return materialService.list();
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("@permissionService.hasPermission(authentication, 'CREATE_MATERIAL')")
+    public MaterialDtos.MaterialResponse update(@PathVariable Long id,
+                                                @RequestBody @Valid MaterialDtos.UpdateMaterialRequest request) {
+        return materialService.update(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("@permissionService.hasPermission(authentication, 'CREATE_MATERIAL')")
+    public void delete(@PathVariable Long id) {
+        materialService.delete(id);
     }
 }

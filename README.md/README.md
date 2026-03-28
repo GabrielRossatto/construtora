@@ -52,7 +52,7 @@ Telas implementadas:
 - Dashboard
 - Empreendimentos
 - Cadastros (materiais)
-- Campanhas
+- Institucional
 - Gerenciamento de usuários
 
 ## Multi-tenant
@@ -67,13 +67,15 @@ Entidades isoladas por `empresa_id`:
 - usuários
 - empreendimentos
 - materiais
-- campanhas
+- institucional
 
 ## Docker
 Arquivos criados:
 - `backend/Dockerfile`
 - `frontend/Dockerfile`
 - `docker/docker-compose.yml`
+- `docker/docker-compose.test.yml`
+- `docker/docker-compose.prod.yml`
 
 Serviços no compose:
 - `mysql`
@@ -102,6 +104,42 @@ docker compose up --build
 
 Frontend: `http://localhost:8081`
 Backend: `http://localhost:8080`
+
+## Ambiente de teste local
+```bash
+cd docker
+docker compose -f docker-compose.test.yml up --build
+```
+
+Serviços do ambiente de teste:
+- Frontend: `http://localhost:18081`
+- Backend: `http://localhost:18080`
+- MinIO API: `http://localhost:19000`
+- MinIO Console: `http://localhost:19001`
+
+O ambiente de teste usa portas, banco e volumes separados da stack principal para evitar impacto no ambiente local padrão.
+
+## Produção
+1. Copie o arquivo de exemplo:
+```bash
+cd docker
+cp .env.production.example .env.production
+```
+2. Preencha as variáveis com seus valores reais, principalmente:
+- `JWT_SECRET`
+- `DB_PASSWORD`
+- `S3_*`
+- `ALLOWED_ORIGINS`
+3. Suba a stack de produção:
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+```
+
+Observações de produção:
+- o frontend é servido por `nginx`, não por `vite dev`
+- a API é acessada por proxy em `/api`
+- o banco usa `Flyway` para migrations
+- os arquivos continuam fora do banco, em storage S3/compatível
 
 ## Observações de segurança
 - Senha com BCrypt

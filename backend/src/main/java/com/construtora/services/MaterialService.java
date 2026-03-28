@@ -36,7 +36,6 @@ public class MaterialService {
 
     @Transactional
     public MaterialDtos.MaterialResponse create(MaterialDtos.CreateMaterialRequest request,
-                                                MultipartFile file,
                                                 HttpServletRequest httpRequest) {
         Long empresaId = currentSessionService.empresaId();
 
@@ -46,20 +45,31 @@ public class MaterialService {
                     .orElseThrow(() -> new NotFoundException("Empreendimento não encontrado"));
         }
 
-        FileStorageService.StoredFile stored = fileStorageService.upload(empresaId, "materiais", file);
-
         Material material = materialRepository.save(Material.builder()
                 .empresaId(empresaId)
                 .empreendimento(empreendimento)
                 .titulo(request.titulo())
                 .tipoArquivo(request.tipoArquivo())
-                .arquivoUrl(stored.url())
-                .descricao(request.descricao())
-                .tamanhoBytes(stored.size())
+                .arquivoUrl(request.arquivoUrl())
+                .pastaDestino(request.pastaDestino() != null && !request.pastaDestino().isBlank() ? request.pastaDestino().trim() : null)
+                .caminhoRelativo(request.caminhoRelativo() != null && !request.caminhoRelativo().isBlank() ? request.caminhoRelativo().trim() : null)
+                .descricao(request.descricao() != null && !request.descricao().isBlank() ? request.descricao().trim() : null)
+                .tamanhoBytes(request.tamanhoBytes())
                 .build());
 
         auditService.log("UPLOAD_MATERIAL", "MATERIAL", material.getId(), httpRequest.getRemoteAddr());
         return toResponse(material);
+    }
+
+    public MaterialDtos.MaterialUploadResponse uploadArquivo(MultipartFile file) {
+        Long empresaId = currentSessionService.empresaId();
+        FileStorageService.StoredFile stored = fileStorageService.upload(empresaId, "materiais", file);
+        return new MaterialDtos.MaterialUploadResponse(
+                stored.key(),
+                stored.url(),
+                stored.contentType(),
+                stored.size()
+        );
     }
 
     public List<MaterialDtos.MaterialResponse> list() {
@@ -72,6 +82,23 @@ public class MaterialService {
                 .orElseThrow(() -> new NotFoundException("Material não encontrado"));
     }
 
+    @Transactional
+    public MaterialDtos.MaterialResponse update(Long id, MaterialDtos.UpdateMaterialRequest request) {
+        Material material = findByIdInTenant(id);
+        material.setTitulo(request.titulo().trim());
+        material.setTipoArquivo(request.tipoArquivo());
+        material.setPastaDestino(request.pastaDestino() != null && !request.pastaDestino().isBlank() ? request.pastaDestino().trim() : null);
+        material.setCaminhoRelativo(request.caminhoRelativo() != null && !request.caminhoRelativo().isBlank() ? request.caminhoRelativo().trim() : null);
+        material.setDescricao(request.descricao() != null && !request.descricao().isBlank() ? request.descricao().trim() : null);
+        return toResponse(materialRepository.save(material));
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        Material material = findByIdInTenant(id);
+        materialRepository.delete(material);
+    }
+
     private MaterialDtos.MaterialResponse toResponse(Material m) {
         return new MaterialDtos.MaterialResponse(
                 m.getId(),
@@ -80,6 +107,8 @@ public class MaterialService {
                 m.getTitulo(),
                 m.getTipoArquivo(),
                 m.getArquivoUrl(),
+                m.getPastaDestino(),
+                m.getCaminhoRelativo(),
                 m.getDescricao(),
                 m.getTamanhoBytes(),
                 m.getDataUpload()

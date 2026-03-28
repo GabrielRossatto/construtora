@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { authService } from '../services/authService'
+import logoCommercialHub from '../assets/logo-commercial-hub.jpeg'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -30,8 +31,12 @@ export default function LoginPage() {
     <div className="login-background min-h-screen text-white flex items-center justify-center p-8">
       <div className="w-full max-w-[1300px] grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         <div className="pl-4 lg:pl-12">
-          <p className="text-5xl font-light mb-2">Bem vindo ao</p>
-          <h1 className="text-6xl font-light italic leading-none">Commercial <span className="not-italic font-bold">HUB</span></h1>
+          <p className="text-5xl font-light mb-6">Bem vindo ao</p>
+          <img
+            src={logoCommercialHub}
+            alt="Commercial HUB"
+            className="h-36 w-auto max-w-full object-contain"
+          />
         </div>
 
         <form onSubmit={handleSubmit} className="glass-panel rounded-[2rem] p-8 max-w-[520px] w-full justify-self-center">

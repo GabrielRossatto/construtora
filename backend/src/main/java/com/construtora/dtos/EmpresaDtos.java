@@ -24,6 +24,8 @@ public class EmpresaDtos {
             String nome,
             String cnpj,
             PlanoEmpresa plano,
+            String iconeUrl,
+            String iconeNome,
             Instant dataCriacao
     ) {}
 }
