@@ -1,6 +1,6 @@
 import Sidebar from '../components/Sidebar'
 import { useAuth } from '../hooks/useAuth'
-import hubioLogo from '../assets/hubio-logo.png'
+import logoCommercialHub from '../assets/logo-commercial-hub.png'
 
 export default function AppLayout({ title, action, children }) {
   const { user } = useAuth()
@@ -23,9 +23,9 @@ export default function AppLayout({ title, action, children }) {
           <div className="flex items-end justify-between gap-4 text-sm text-white/70">
             <p>&copy; 2026 Hubio. Todos os direitos reservados.</p>
             <img
-              src={hubioLogo}
+              src={logoCommercialHub}
               alt="Hubio"
-              className="relative z-10 -mt-3 h-14 w-auto object-contain"
+              className="relative z-10 -mt-3 h-[39px] w-auto object-contain"
             />
           </div>
         </footer>

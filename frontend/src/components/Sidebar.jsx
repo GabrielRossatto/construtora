@@ -3,16 +3,16 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { hubService } from '../services/hubService'
 
-const CREATE_PERMISSIONS = ['CREATE_DEVELOPMENT', 'CREATE_USER', 'CREATE_MATERIAL']
+const CADASTROS_PERMISSIONS = ['CREATE_DEVELOPMENT', 'CREATE_USER', 'CREATE_MATERIAL', 'VIEW_MATERIAL']
 export default function Sidebar({ user }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { logout, hasPermission, token } = useAuth()
   const [iconeUrl, setIconeUrl] = useState(null)
   const [planoEmpresa, setPlanoEmpresa] = useState(null)
-  const canAccessCadastros = CREATE_PERMISSIONS.some(hasPermission)
+  const canAccessCadastros = CADASTROS_PERMISSIONS.some(hasPermission)
   const canAccessUsuarios = hasPermission('VIEW_USER')
-  const canAccessIa = planoEmpresa !== 'BASIC'
+  const canAccessIa = planoEmpresa === 'PRO' || planoEmpresa === 'ENTERPRISE'
   const menu = [
     { label: 'Dashboard', to: '/dashboard' },
     { label: 'Institucional', to: '/institucional' },

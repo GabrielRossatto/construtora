@@ -109,6 +109,8 @@ function createInstitucionalDraft(index = 1) {
   return {
     id: `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
     titulo: '',
+    pastaDestino: '',
+    caminhoRelativo: '',
     link: '',
     arquivo: null
   }
@@ -294,10 +296,11 @@ export default function CadastrosPage() {
   const { token, user, hasPermission } = useAuth()
   const toast = useToast()
   const isAdminMaster = user?.role === 'ADMIN_MASTER'
+  const canViewMaterial = hasPermission('VIEW_MATERIAL')
   const canCreateMaterial = hasPermission('CREATE_MATERIAL')
   const canCreateUser = hasPermission('CREATE_USER')
   const canCreateDevelopment = hasPermission('CREATE_DEVELOPMENT')
-  const canAccessAnyCadastro = canCreateMaterial || canCreateUser || canCreateDevelopment
+  const canAccessAnyCadastro = canViewMaterial || canCreateMaterial || canCreateUser || canCreateDevelopment
   const [searchParams] = useSearchParams()
   const [empreendimentos, setEmpreendimentos] = useState([])
   const [openSection, setOpenSection] = useState(null)
@@ -306,16 +309,21 @@ export default function CadastrosPage() {
   const [file, setFile] = useState(null)
   const [folderFiles, setFolderFiles] = useState([])
   const [salvandoMaterial, setSalvandoMaterial] = useState(false)
-  const [userPayload, setUserPayload] = useState({ nome: '', email: '', telefone: '', senha: '', role: 'TIME_COMERCIAL', permissionCodes: [] })
+  const [userPayload, setUserPayload] = useState({ nome: '', email: '', telefone: '', cargo: '', senha: '', role: 'TIME_COMERCIAL', permissionCodes: [] })
   const [empreendimentoPayload, setEmpreendimentoPayload] = useState(createEmpreendimentoPayload())
   const [fotoEmpreendimento, setFotoEmpreendimento] = useState(null)
   const [buscandoCep, setBuscandoCep] = useState(false)
   const [salvandoEmpreendimento, setSalvandoEmpreendimento] = useState(false)
   const fileInputRef = useRef(null)
   const folderInputRef = useRef(null)
+  const institucionalFolderInputRef = useRef(null)
   const fotoEmpreendimentoInputRef = useRef(null)
   const [institucionalDrafts, setInstitucionalDrafts] = useState([createInstitucionalDraft(1)])
+  const [institucionalUploadMode, setInstitucionalUploadMode] = useState('arquivo')
+  const [institucionalFolderFiles, setInstitucionalFolderFiles] = useState([])
   const [salvandoInstitucional, setSalvandoInstitucional] = useState(false)
+  const [confirmMaterialFolderUpload, setConfirmMaterialFolderUpload] = useState(false)
+  const [confirmInstitucionalFolderUpload, setConfirmInstitucionalFolderUpload] = useState(false)
   const [empresa, setEmpresa] = useState(null)
   const [iconeEmpresa, setIconeEmpresa] = useState(null)
   const [salvandoIconeEmpresa, setSalvandoIconeEmpresa] = useState(false)
@@ -332,7 +340,7 @@ export default function CadastrosPage() {
       setEmpreendimentos(empreendimentosResult.status === 'fulfilled' ? (empreendimentosResult.value || []) : [])
       setEmpresa(empresaResult.status === 'fulfilled' ? (empresaResult.value || null) : null)
     })
-  }, [token])
+  }, [token, canViewMaterial])
 
   useEffect(() => {
     const tab = searchParams.get('tab')
@@ -345,11 +353,32 @@ export default function CadastrosPage() {
     }
   }, [searchParams])
 
+  async function processMaterialFolderUpload() {
+    for (const currentFile of folderFiles) {
+      const relativePath = currentFile.webkitRelativePath || currentFile.relativePath || currentFile.name
+      const title = currentFile.name.replace(/\.[^.]+$/, '')
+      await hubService.criarMaterial(token, {
+        titulo: title,
+        tipoArquivo: inferMaterialType(currentFile),
+        empreendimentoId: Number(payload.empreendimentoId),
+        pastaDestino: payload.titulo.trim(),
+        caminhoRelativo: relativePath,
+        descricao: null
+      }, currentFile)
+    }
+    toast.success('Pasta enviada com sucesso.')
+    setPayload({ titulo: '', empreendimentoId: '' })
+    setMaterialUploadMode('arquivo')
+    setFile(null)
+    setFolderFiles([])
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    if (folderInputRef.current) folderInputRef.current.value = ''
+  }
+
   async function submitMaterial(e) {
     e.preventDefault()
     if ((!file && folderFiles.length === 0) || salvandoMaterial) return
     try {
-      setSalvandoMaterial(true)
       if (!payload.empreendimentoId) {
         throw new Error('Selecione o empreendimento do material.')
       }
@@ -359,20 +388,12 @@ export default function CadastrosPage() {
       }
 
       if (materialUploadMode === 'pasta') {
-        for (const currentFile of folderFiles) {
-          const relativePath = currentFile.webkitRelativePath || currentFile.relativePath || currentFile.name
-          const title = currentFile.name.replace(/\.[^.]+$/, '')
-          await hubService.criarMaterial(token, {
-            titulo: title,
-            tipoArquivo: inferMaterialType(currentFile),
-            empreendimentoId: Number(payload.empreendimentoId),
-            pastaDestino: payload.titulo.trim(),
-            caminhoRelativo: relativePath,
-            descricao: null
-          }, currentFile)
+        if (folderFiles.length === 0) {
+          throw new Error('Selecione uma pasta com arquivos antes de salvar.')
         }
-        toast.success('Pasta enviada com sucesso.')
+        setConfirmMaterialFolderUpload(true)
       } else {
+        setSalvandoMaterial(true)
         await hubService.criarMaterial(token, {
           ...payload,
           tipoArquivo: inferMaterialType(file),
@@ -381,14 +402,13 @@ export default function CadastrosPage() {
           empreendimentoId: payload.empreendimentoId ? Number(payload.empreendimentoId) : null
         }, file)
         toast.success('Material criado com sucesso.')
+        setPayload({ titulo: '', empreendimentoId: '' })
+        setMaterialUploadMode('arquivo')
+        setFile(null)
+        setFolderFiles([])
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        if (folderInputRef.current) folderInputRef.current.value = ''
       }
-
-      setPayload({ titulo: '', empreendimentoId: '' })
-      setMaterialUploadMode('arquivo')
-      setFile(null)
-      setFolderFiles([])
-      if (fileInputRef.current) fileInputRef.current.value = ''
-      if (folderInputRef.current) folderInputRef.current.value = ''
     } catch (error) {
       toast.error(error.message || 'Não foi possível criar o material')
     } finally {
@@ -401,7 +421,7 @@ export default function CadastrosPage() {
     try {
       const payloadToSend = isAdminMaster ? userPayload : { ...userPayload, permissionCodes: [] }
       await hubService.criarUsuario(token, payloadToSend)
-      setUserPayload({ nome: '', email: '', telefone: '', senha: '', role: 'TIME_COMERCIAL', permissionCodes: [] })
+      setUserPayload({ nome: '', email: '', telefone: '', cargo: '', senha: '', role: 'TIME_COMERCIAL', permissionCodes: [] })
       toast.success('Usuário criado com sucesso.')
     } catch (error) {
       toast.error(error.message || 'Não foi possível criar o usuário')
@@ -439,6 +459,15 @@ export default function CadastrosPage() {
     e.preventDefault()
     if (salvandoInstitucional) return
     try {
+      if (institucionalUploadMode === 'pasta') {
+        if (institucionalFolderFiles.length === 0) {
+          toast.info('Selecione uma pasta com arquivos institucionais antes de salvar.')
+          return
+        }
+        setConfirmInstitucionalFolderUpload(true)
+        return
+      }
+
       setSalvandoInstitucional(true)
       const validDrafts = institucionalDrafts.filter((item) => item.titulo.trim() || item.arquivo || item.link.trim())
       if (validDrafts.length === 0) {
@@ -677,6 +706,31 @@ export default function CadastrosPage() {
     }
   }
 
+  function handleInstitucionalFolderChange(e) {
+    const selectedFiles = Array.from(e.target.files || [])
+    setInstitucionalFolderFiles(selectedFiles)
+  }
+
+  async function processInstitucionalFolderUpload() {
+    for (const file of institucionalFolderFiles) {
+      const relativePath = file.webkitRelativePath || file.relativePath || file.name
+      const folderName = relativePath.includes('/') ? relativePath.split('/')[0] : 'Pasta institucional'
+      const titulo = file.name.replace(/\.[^.]+$/, '').trim() || 'Arquivo institucional'
+      await hubService.criarInstitucionalArquivo(token, {
+        titulo,
+        pastaDestino: folderName,
+        caminhoRelativo: relativePath,
+        link: ''
+      }, file)
+    }
+
+    setInstitucionalFolderFiles([])
+    if (institucionalFolderInputRef.current) {
+      institucionalFolderInputRef.current.value = ''
+    }
+    toast.success('Pasta institucional enviada com sucesso.')
+  }
+
   return (
     <AppLayout title="Cadastros">
       <section className="cadastros-form space-y-4">
@@ -686,68 +740,70 @@ export default function CadastrosPage() {
           </div>
         )}
 
-        {canCreateMaterial && (
+        {canViewMaterial && (
           <>
             <AccordionHeader
-              title="Novo material"
+              title={canCreateMaterial ? 'Novo material' : 'Materiais cadastrados'}
               isOpen={openSection === 'material'}
               onClick={() => toggle('material')}
             />
             <AccordionPanel isOpen={openSection === 'material'}>
               <div className="mt-3 rounded-3xl border border-white/20 border-x-4 border-white/35 bg-white/12 p-8 backdrop-blur-sm">
-                <form onSubmit={submitMaterial} className="grid grid-cols-1 lg:grid-cols-2 gap-5 text-xl">
-                  <Field label="Título">
-                    <input className="input-hub w-full rounded-2xl p-3" value={payload.titulo} onChange={(e) => setPayload((p) => ({ ...p, titulo: e.target.value }))} />
-                    <p className="mt-1 text-sm text-slate-600">No upload de pasta, cada arquivo usa o próprio nome.</p>
-                  </Field>
-                  <Field label="Empreendimento">
-                    <select className="input-hub w-full rounded-2xl p-3" value={payload.empreendimentoId} onChange={(e) => setPayload((p) => ({ ...p, empreendimentoId: e.target.value }))}>
-                      <option value="">Selecione</option>
-                      {empreendimentos.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
-                    </select>
-                  </Field>
-                  <div className="lg:col-span-2">
-                    <p className="text-base font-semibold">
-                      Você deseja cadastrar um arquivo avulso, ou uma pasta com vários arquivos?
-                    </p>
-                    <div className="mt-4 flex flex-wrap gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setMaterialUploadMode('arquivo')}
-                        className={`rounded-full px-5 py-2 text-base font-semibold ${materialUploadMode === 'arquivo' ? 'bg-hubBlueDeep text-white' : 'bg-[#2b2b2b] text-white border border-white/15'}`}
-                      >
-                        Arquivo avulso
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setMaterialUploadMode('pasta')}
-                        className={`rounded-full px-5 py-2 text-base font-semibold ${materialUploadMode === 'pasta' ? 'bg-hubBlueDeep text-white' : 'bg-[#2b2b2b] text-white border border-white/15'}`}
-                      >
-                        Pasta com arquivos
+                {canCreateMaterial && (
+                  <form noValidate onSubmit={submitMaterial} className="grid grid-cols-1 lg:grid-cols-2 gap-5 text-xl">
+                    <Field label="Título">
+                      <input className="input-hub w-full rounded-2xl p-3" value={payload.titulo} onChange={(e) => setPayload((p) => ({ ...p, titulo: e.target.value }))} />
+                      <p className="mt-1 text-sm text-slate-600">No upload de pasta, cada arquivo usa o próprio nome.</p>
+                    </Field>
+                    <Field label="Empreendimento">
+                      <select className="input-hub w-full rounded-2xl p-3" value={payload.empreendimentoId} onChange={(e) => setPayload((p) => ({ ...p, empreendimentoId: e.target.value }))}>
+                        <option value="">Selecione</option>
+                        {empreendimentos.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                      </select>
+                    </Field>
+                    <div className="lg:col-span-2">
+                      <p className="text-base font-semibold">
+                        Você deseja cadastrar um arquivo avulso, ou uma pasta com vários arquivos?
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setMaterialUploadMode('arquivo')}
+                          className={`rounded-full px-5 py-2 text-base font-semibold ${materialUploadMode === 'arquivo' ? 'bg-hubBlueDeep text-white' : 'bg-[#2b2b2b] text-white border border-white/15'}`}
+                        >
+                          Arquivo avulso
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMaterialUploadMode('pasta')}
+                          className={`rounded-full px-5 py-2 text-base font-semibold ${materialUploadMode === 'pasta' ? 'bg-hubBlueDeep text-white' : 'bg-[#2b2b2b] text-white border border-white/15'}`}
+                        >
+                          Pasta com arquivos
+                        </button>
+                      </div>
+                    </div>
+                    {materialUploadMode === 'arquivo' ? (
+                      <Field label="Arquivo" className="lg:col-span-2">
+                        <input ref={fileInputRef} type="file" className="input-hub w-full rounded-2xl p-3" onChange={handleMaterialFileChange} />
+                        <p className="mt-1 text-sm text-slate-600">
+                          Imagens são comprimidas automaticamente antes do envio. PDFs e outros formatos podem ter até 100 MB.
+                        </p>
+                      </Field>
+                    ) : (
+                      <Field label="Pasta" className="lg:col-span-2">
+                        <input ref={folderInputRef} type="file" webkitdirectory="" directory="" multiple className="input-hub w-full rounded-2xl p-3" onChange={handleMaterialFolderChange} />
+                        <p className="mt-1 text-sm text-slate-600">
+                          Selecione uma pasta inteira para cadastrar vários materiais de uma vez no empreendimento escolhido. O nome da pasta será o título informado acima.
+                        </p>
+                      </Field>
+                    )}
+                    <div className="lg:col-span-2">
+                      <button disabled={salvandoMaterial} className="bg-hubBlueDeep text-white px-6 py-2 rounded-xl text-2xl disabled:opacity-70">
+                        {salvandoMaterial ? 'Enviando material...' : 'Salvar material'}
                       </button>
                     </div>
-                  </div>
-                  {materialUploadMode === 'arquivo' ? (
-                    <Field label="Arquivo" className="lg:col-span-2">
-                      <input ref={fileInputRef} type="file" className="input-hub w-full rounded-2xl p-3" onChange={handleMaterialFileChange} />
-                      <p className="mt-1 text-sm text-slate-600">
-                        Imagens são comprimidas automaticamente antes do envio. PDFs e outros formatos podem ter até 100 MB.
-                      </p>
-                    </Field>
-                  ) : (
-                    <Field label="Pasta" className="lg:col-span-2">
-                      <input ref={folderInputRef} type="file" webkitdirectory="" directory="" multiple className="input-hub w-full rounded-2xl p-3" onChange={handleMaterialFolderChange} />
-                      <p className="mt-1 text-sm text-slate-600">
-                        Selecione uma pasta inteira para cadastrar vários materiais de uma vez no empreendimento escolhido. O nome da pasta será o título informado acima.
-                      </p>
-                    </Field>
-                  )}
-                  <div className="lg:col-span-2">
-                    <button disabled={salvandoMaterial} className="bg-hubBlueDeep text-white px-6 py-2 rounded-xl text-2xl disabled:opacity-70">
-                      {salvandoMaterial ? 'Enviando material...' : 'Salvar material'}
-                    </button>
-                  </div>
-                </form>
+                  </form>
+                )}
               </div>
             </AccordionPanel>
           </>
@@ -766,12 +822,7 @@ export default function CadastrosPage() {
                   <Field label="Nome"><input className="input-hub w-full rounded-2xl p-3" value={userPayload.nome} onChange={(e) => setUserPayload((p) => ({ ...p, nome: e.target.value }))} /></Field>
                   <Field label="E-mail"><input className="input-hub w-full rounded-2xl p-3" value={userPayload.email} onChange={(e) => setUserPayload((p) => ({ ...p, email: e.target.value }))} /></Field>
                   <Field label="Telefone"><input className="input-hub w-full rounded-2xl p-3" value={userPayload.telefone} onChange={(e) => setUserPayload((p) => ({ ...p, telefone: e.target.value }))} /></Field>
-                  <Field label="Role">
-                    <select className="input-hub w-full rounded-2xl p-3" value={userPayload.role} onChange={(e) => setUserPayload((p) => ({ ...p, role: e.target.value }))}>
-                      <option value="ADMIN_MASTER">ADMIN MASTER</option>
-                      <option value="TIME_COMERCIAL">TIME COMERCIAL</option>
-                    </select>
-                  </Field>
+                  <Field label="Cargo"><input className="input-hub w-full rounded-2xl p-3" value={userPayload.cargo} onChange={(e) => setUserPayload((p) => ({ ...p, cargo: e.target.value }))} /></Field>
                   {isAdminMaster && (
                     <Field label="Permissões extras" className="lg:col-span-2">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1172,44 +1223,96 @@ export default function CadastrosPage() {
                     </div>
                   </form>
 
-                  <form onSubmit={submitInstitucional} className="grid grid-cols-1 gap-5 text-xl">
-                  {institucionalDrafts.map((item, index) => (
-                    <div key={item.id} className="rounded-2xl border border-white/18 bg-transparent p-5">
-                      <div className="flex items-center justify-between mb-4">
-                        <p className="text-lg font-semibold text-slate-900">{`Arquivo institucional ${index + 1}`}</p>
-                        {institucionalDrafts.length > 1 && (
-                          <button type="button" onClick={() => removeInstitucionalDraft(item.id)} className="text-sm font-semibold text-red-600">Remover</button>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-1 gap-4">
-                        <Field label="Título">
-                          <input
-                            className="input-hub w-full rounded-2xl border border-slate-300 bg-white p-3"
-                            value={item.titulo}
-                            onChange={(e) => updateInstitucionalDraft(item.id, 'titulo', e.target.value)}
-                          />
-                        </Field>
-                        <Field label="Link">
-                          <input
-                            className="input-hub w-full rounded-2xl border border-slate-300 bg-white p-3"
-                            value={item.link}
-                            onChange={(e) => updateInstitucionalDraft(item.id, 'link', e.target.value)}
-                          />
-                        </Field>
-                        <Field label="Arquivo institucional">
-                          <input
-                            type="file"
-                            className="input-hub w-full rounded-2xl border border-slate-300 bg-white p-3"
-                            onChange={(e) => updateInstitucionalDraft(item.id, 'arquivo', e.target.files?.[0] || null)}
-                          />
-                        </Field>
-                      </div>
+                  <form noValidate onSubmit={submitInstitucional} className="grid grid-cols-1 gap-5 text-xl">
+                  <div className="rounded-2xl border border-white/18 bg-transparent p-5">
+                    <p className="text-base font-semibold text-slate-900">
+                      Você deseja cadastrar um arquivo avulso, ou uma pasta com vários arquivos?
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setInstitucionalUploadMode('arquivo')}
+                        className={`rounded-full px-5 py-2 text-base font-semibold ${institucionalUploadMode === 'arquivo' ? 'bg-hubBlueDeep text-white' : 'bg-[#2b2b2b] text-white border border-white/15'}`}
+                      >
+                        Arquivo avulso
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setInstitucionalUploadMode('pasta')}
+                        className={`rounded-full px-5 py-2 text-base font-semibold ${institucionalUploadMode === 'pasta' ? 'bg-hubBlueDeep text-white' : 'bg-[#2b2b2b] text-white border border-white/15'}`}
+                      >
+                        Pasta com arquivos
+                      </button>
                     </div>
-                  ))}
+                  </div>
+
+                  {institucionalUploadMode === 'arquivo' ? (
+                    <>
+                      {institucionalDrafts.map((item, index) => (
+                        <div key={item.id} className="rounded-2xl border border-white/18 bg-transparent p-5">
+                          <div className="flex items-center justify-between mb-4">
+                            <p className="text-lg font-semibold text-slate-900">{`Arquivo institucional ${index + 1}`}</p>
+                            {institucionalDrafts.length > 1 && (
+                              <button type="button" onClick={() => removeInstitucionalDraft(item.id)} className="text-sm font-semibold text-red-600">Remover</button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 gap-4">
+                            <Field label="Título">
+                              <input
+                                className="input-hub w-full rounded-2xl border border-slate-300 bg-white p-3"
+                                value={item.titulo}
+                                onChange={(e) => updateInstitucionalDraft(item.id, 'titulo', e.target.value)}
+                              />
+                            </Field>
+                            <Field label="Link">
+                              <input
+                                className="input-hub w-full rounded-2xl border border-slate-300 bg-white p-3"
+                                value={item.link}
+                                onChange={(e) => updateInstitucionalDraft(item.id, 'link', e.target.value)}
+                              />
+                            </Field>
+                            <Field label="Arquivo institucional">
+                              <input
+                                type="file"
+                                className="input-hub w-full rounded-2xl border border-slate-300 bg-white p-3"
+                                onChange={(e) => updateInstitucionalDraft(item.id, 'arquivo', e.target.files?.[0] || null)}
+                              />
+                            </Field>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <div className="rounded-2xl border border-white/18 bg-transparent p-5">
+                      <Field label="Pasta institucional">
+                        <input
+                          ref={institucionalFolderInputRef}
+                          type="file"
+                          webkitdirectory=""
+                          directory=""
+                          multiple
+                          className="input-hub w-full rounded-2xl border border-slate-300 bg-white p-3"
+                          onChange={handleInstitucionalFolderChange}
+                        />
+                        <p className="mt-2 text-sm text-slate-600">
+                          Cada arquivo da pasta será cadastrado como um item institucional separado.
+                        </p>
+                      </Field>
+                      {institucionalFolderFiles.length > 0 && (
+                        <p className="mt-3 text-sm text-slate-600">
+                          {institucionalFolderFiles.length} arquivo(s) selecionado(s).
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-center justify-between gap-3">
-                    <button type="button" onClick={addInstitucionalDraft} className="bg-white/12 text-white border border-white/20 px-6 py-2 rounded-xl text-2xl font-semibold">
-                      Adicionar
-                    </button>
+                    {institucionalUploadMode === 'arquivo' ? (
+                      <button type="button" onClick={addInstitucionalDraft} className="bg-white/12 text-white border border-white/20 px-6 py-2 rounded-xl text-2xl font-semibold">
+                        Adicionar
+                      </button>
+                    ) : (
+                      <div />
+                    )}
                     <button
                       type="submit"
                       disabled={salvandoInstitucional}
@@ -1225,6 +1328,84 @@ export default function CadastrosPage() {
           </>
         )}
       </section>
+
+      {confirmMaterialFolderUpload && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-[2rem] border border-white/12 bg-[#2b2b2b] p-6 text-white shadow-2xl">
+            <h2 className="text-2xl font-semibold text-white">Confirmar envio da pasta</h2>
+            <p className="mt-3 text-sm leading-7 text-white/65">
+              A pasta <span className="font-semibold text-white">"{payload.titulo}"</span> será enviada com {folderFiles.length} arquivo(s).
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmMaterialFolderUpload(false)}
+                disabled={salvandoMaterial}
+                className="rounded-xl border border-white/14 bg-white/8 px-5 py-2 font-medium text-white disabled:opacity-70"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    setSalvandoMaterial(true)
+                    await processMaterialFolderUpload()
+                    setConfirmMaterialFolderUpload(false)
+                  } catch (error) {
+                    toast.error(error.message || 'Não foi possível criar o material')
+                  } finally {
+                    setSalvandoMaterial(false)
+                  }
+                }}
+                disabled={salvandoMaterial}
+                className="rounded-xl bg-hubBlueDeep px-5 py-2 font-semibold text-white disabled:opacity-70"
+              >
+                {salvandoMaterial ? 'Enviando...' : 'Enviar pasta'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmInstitucionalFolderUpload && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-[2rem] border border-white/12 bg-[#2b2b2b] p-6 text-white shadow-2xl">
+            <h2 className="text-2xl font-semibold text-white">Confirmar envio da pasta</h2>
+            <p className="mt-3 text-sm leading-7 text-white/65">
+              A pasta institucional selecionada será enviada com {institucionalFolderFiles.length} arquivo(s).
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmInstitucionalFolderUpload(false)}
+                disabled={salvandoInstitucional}
+                className="rounded-xl border border-white/14 bg-white/8 px-5 py-2 font-medium text-white disabled:opacity-70"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    setSalvandoInstitucional(true)
+                    await processInstitucionalFolderUpload()
+                    setConfirmInstitucionalFolderUpload(false)
+                  } catch (error) {
+                    toast.error(error.message || 'Não foi possível salvar o institucional')
+                  } finally {
+                    setSalvandoInstitucional(false)
+                  }
+                }}
+                disabled={salvandoInstitucional}
+                className="rounded-xl bg-hubBlueDeep px-5 py-2 font-semibold text-white disabled:opacity-70"
+              >
+                {salvandoInstitucional ? 'Enviando...' : 'Enviar pasta'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </AppLayout>
   )

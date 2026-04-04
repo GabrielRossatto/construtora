@@ -38,10 +38,10 @@ public class DataInitializer {
 
             createOrUpdateRole(roleRepository, permissionRepository, RoleName.ADMIN_MASTER, "Acesso total", permissions);
             createOrUpdateRole(roleRepository, permissionRepository, RoleName.TIME_COMERCIAL, "Operação comercial", List.of(
-                    "CREATE_USER", "VIEW_USER",
-                    "CREATE_DEVELOPMENT", "VIEW_DEVELOPMENT",
-                    "CREATE_MATERIAL", "VIEW_MATERIAL",
-                    "UPLOAD_FILE"
+                    "VIEW_USER",
+                    "VIEW_ENTERPRISE",
+                    "VIEW_DEVELOPMENT",
+                    "VIEW_MATERIAL"
             ));
         };
     }

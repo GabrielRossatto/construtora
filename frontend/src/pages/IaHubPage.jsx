@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import AppLayout from '../layouts/AppLayout'
 import { useAuth } from '../hooks/useAuth'
 import { hubService } from '../services/hubService'
 import { useToast } from '../hooks/useToast'
+
+const INSTITUCIONAL_CONTEXT_ID = 'INSTITUCIONAL'
 
 export default function IaHubPage() {
   const { user, token } = useAuth()
@@ -24,11 +27,12 @@ export default function IaHubPage() {
   const textareaRef = useRef(null)
   const firstName = (user?.nome || 'usuário').trim().split(' ')[0]
   const selectedEmpreendimento = empreendimentos.find((item) => String(item.id) === selectedEmpreendimentoId)
+  const institucionalSelected = selectedEmpreendimentoId === INSTITUCIONAL_CONTEXT_ID
   const groupedHistory = history.reduce((groups, item) => {
     const empreendimentoId = item.empreendimentoId ?? 'sem-empreendimento'
     const empreendimentoNome = item.empreendimentoId
       ? empreendimentos.find((empreendimento) => empreendimento.id === item.empreendimentoId)?.nome || `Empreendimento #${item.empreendimentoId}`
-      : 'Sem empreendimento vinculado'
+      : 'Institucional da empresa'
     const existingGroup = groups.find((group) => group.key === empreendimentoId)
 
     if (existingGroup) {
@@ -67,7 +71,9 @@ export default function IaHubPage() {
         setEmpreendimentos(empreendimentosResponse || [])
         const savedEmpreendimentoId = window.localStorage.getItem('iaHub.selectedEmpreendimentoId')
         const savedExists = (empreendimentosResponse || []).some((item) => String(item.id) === savedEmpreendimentoId)
-        if (savedExists) {
+        if (savedEmpreendimentoId === INSTITUCIONAL_CONTEXT_ID) {
+          setSelectedEmpreendimentoId(INSTITUCIONAL_CONTEXT_ID)
+        } else if (savedExists) {
           setSelectedEmpreendimentoId(savedEmpreendimentoId)
         } else if ((empreendimentosResponse || []).length === 1) {
           setSelectedEmpreendimentoId(String(empreendimentosResponse[0].id))
@@ -128,14 +134,15 @@ export default function IaHubPage() {
     try {
       const response = await hubService.perguntarIa(token, {
         empresaId: user?.empresaId ?? null,
-        empreendimentoId: Number(selectedEmpreendimentoId),
+        empreendimentoId: institucionalSelected ? null : Number(selectedEmpreendimentoId),
+        contextoModo: institucionalSelected ? 'INSTITUCIONAL' : 'EMPREENDIMENTO',
         pergunta: content
       })
 
       setHistory((current) => [
         {
           id: `${Date.now()}-history`,
-          empreendimentoId: Number(selectedEmpreendimentoId),
+          empreendimentoId: institucionalSelected ? null : Number(selectedEmpreendimentoId),
           pergunta: content,
           resposta: response.resposta,
           tokensUsados: response.tokensUsados,
@@ -283,19 +290,7 @@ export default function IaHubPage() {
   }
 
   if (planoEmpresa === 'BASIC') {
-    return (
-      <AppLayout>
-        <section className="min-h-[calc(100vh-3.5rem)] bg-[#2b2b2b] px-4 py-10">
-          <div className="mx-auto max-w-3xl rounded-[2rem] border border-white/12 bg-white/8 p-8 text-white">
-            <h1 className="text-3xl font-semibold">IA indisponível no plano atual</h1>
-            <p className="mt-4 text-lg leading-8 text-white/75">
-              Sua construtora está no Plano Básico, que não inclui acesso ao IA HUB.
-              Para liberar esse recurso, faça upgrade para o Plano Premium.
-            </p>
-          </div>
-        </section>
-      </AppLayout>
-    )
+    return <Navigate to="/dashboard" replace />
   }
 
   return (
@@ -339,6 +334,9 @@ export default function IaHubPage() {
                               if (item.empreendimentoId) {
                                 setSelectedEmpreendimentoId(String(item.empreendimentoId))
                                 window.localStorage.setItem('iaHub.selectedEmpreendimentoId', String(item.empreendimentoId))
+                              } else {
+                                setSelectedEmpreendimentoId(INSTITUCIONAL_CONTEXT_ID)
+                                window.localStorage.setItem('iaHub.selectedEmpreendimentoId', INSTITUCIONAL_CONTEXT_ID)
                               }
                               setChat([
                                 { id: `${item.id}-user`, role: 'user', text: item.pergunta },
@@ -374,13 +372,13 @@ export default function IaHubPage() {
                 Que bom te ver, {firstName}.
               </h1>
               <p className="mt-4 text-lg text-slate-500 md:text-xl">
-                {selectedEmpreendimentoId ? 'Como posso ajudar?' : 'Selecione primeiro o empreendimento para abrir o chat.'}
+                {selectedEmpreendimentoId ? 'Como posso ajudar?' : 'Selecione um contexto para abrir o chat.'}
               </p>
             </div>
 
             <div className="mb-6 rounded-[2rem] border border-white/15 bg-white/8 p-4 shadow-soft md:p-5">
               <label className="mb-3 block text-sm font-semibold uppercase tracking-[0.24em] text-white/65">
-                Empreendimento
+                Contexto da conversa
               </label>
               <div className="flex flex-wrap gap-3">
                 {empreendimentos.length === 0 && (
@@ -388,6 +386,23 @@ export default function IaHubPage() {
                     Nenhum empreendimento disponível.
                   </div>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedEmpreendimentoId(INSTITUCIONAL_CONTEXT_ID)
+                    window.localStorage.setItem('iaHub.selectedEmpreendimentoId', INSTITUCIONAL_CONTEXT_ID)
+                    setChat([])
+                    setMessage('')
+                  }}
+                  className={`rounded-2xl border px-4 py-2.5 text-sm font-semibold transition md:text-base ${
+                    institucionalSelected
+                      ? 'border-white/45 bg-white/20 text-white'
+                      : 'border-white/15 bg-white/10 text-white/90 hover:bg-white/16'
+                  }`}
+                >
+                  Institucional da empresa
+                </button>
 
                 {empreendimentos.map((item) => {
                   const isActive = String(item.id) === selectedEmpreendimentoId
@@ -417,12 +432,14 @@ export default function IaHubPage() {
             <div className="mb-6 rounded-[2rem] border border-white/15 bg-white/8 p-5 shadow-soft">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/55">Contexto ativo</p>
               <h2 className="mt-3 text-2xl font-semibold text-white">
-                {selectedEmpreendimento?.nome || 'Nenhum empreendimento selecionado'}
+                {institucionalSelected ? 'Institucional da empresa' : selectedEmpreendimento?.nome || 'Nenhum contexto selecionado'}
               </h2>
               <p className="mt-3 leading-7 text-white/70">
-                {selectedEmpreendimento
-                  ? 'Toda resposta da IA será guiada pelos dados comerciais deste empreendimento.'
-                  : 'Selecione um empreendimento antes de pedir propostas, materiais ou comparativos.'}
+                {institucionalSelected
+                  ? 'Neste modo, a IA fala apenas sobre estratégia comercial e posicionamento institucional da construtora. Se você quiser respostas mais orientadas por dados, selecione um empreendimento.'
+                  : selectedEmpreendimento
+                    ? 'Toda resposta da IA será guiada pelos dados comerciais deste empreendimento.'
+                    : 'Selecione um empreendimento ou o contexto institucional antes de iniciar a conversa.'}
               </p>
             </div>
 
@@ -503,7 +520,7 @@ export default function IaHubPage() {
                   ref={textareaRef}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder={selectedEmpreendimentoId ? 'Digite sua pergunta comercial...' : 'Selecione um empreendimento para começar'}
+                  placeholder={selectedEmpreendimentoId ? 'Digite sua pergunta comercial...' : 'Selecione um contexto para começar'}
                   rows={1}
                   disabled={!selectedEmpreendimentoId}
                   className="min-h-[36px] w-full resize-none overflow-hidden bg-transparent text-lg text-white placeholder:text-white/55 focus:outline-none md:text-xl"

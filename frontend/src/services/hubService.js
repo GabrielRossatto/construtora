@@ -59,14 +59,14 @@ export const hubService = {
   excluirInstitucionalArquivo(token, id) {
     return api.request(`/api/institucional/${id}`, { method: 'DELETE', token })
   },
+  excluirInstitucionalPasta(token, pastaDestino) {
+    return api.request(`/api/institucional/pastas/${encodeURIComponent(pastaDestino)}`, { method: 'DELETE', token })
+  },
   excluirEmpreendimento(token, id) {
     return api.request(`/api/empreendimentos/${id}`, { method: 'DELETE', token })
   },
   materiais(token) {
     return api.request('/api/materiais', { token })
-  },
-  atualizarMaterial(token, id, payload) {
-    return api.request(`/api/materiais/${id}`, { method: 'PUT', token, body: payload })
   },
   excluirMaterial(token, id) {
     return api.request(`/api/materiais/${id}`, { method: 'DELETE', token })

@@ -16,7 +16,7 @@ export default function UsuariosPage() {
   const isAdminMaster = user?.role === 'ADMIN_MASTER'
   const canCreateUser = hasPermission('CREATE_USER')
   const [usuarios, setUsuarios] = useState([])
-  const [form, setForm] = useState({ nome: '', email: '', telefone: '', senha: '', role: 'TIME_COMERCIAL', permissionCodes: [] })
+  const [form, setForm] = useState({ nome: '', email: '', telefone: '', cargo: '', senha: '', role: 'TIME_COMERCIAL', permissionCodes: [] })
 
   async function carregar() {
     const data = await hubService.usuarios(token)
@@ -30,7 +30,7 @@ export default function UsuariosPage() {
     try {
       const payload = isAdminMaster ? form : { ...form, permissionCodes: [] }
       await hubService.criarUsuario(token, payload)
-      setForm({ nome: '', email: '', telefone: '', senha: '', role: 'TIME_COMERCIAL', permissionCodes: [] })
+      setForm({ nome: '', email: '', telefone: '', cargo: '', senha: '', role: 'TIME_COMERCIAL', permissionCodes: [] })
       await carregar()
       toast.success('Usuário criado com sucesso.')
     } catch (error) {
@@ -47,11 +47,8 @@ export default function UsuariosPage() {
             <input className="input-hub rounded-xl p-3 text-xl" placeholder="Nome" value={form.nome} onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))} />
             <input className="input-hub rounded-xl p-3 text-xl" placeholder="E-mail" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
             <input className="input-hub rounded-xl p-3 text-xl" placeholder="Telefone" value={form.telefone} onChange={(e) => setForm((f) => ({ ...f, telefone: e.target.value }))} />
+            <input className="input-hub rounded-xl p-3 text-xl" placeholder="Cargo" value={form.cargo} onChange={(e) => setForm((f) => ({ ...f, cargo: e.target.value }))} />
             <input type="password" minLength={8} className="input-hub rounded-xl p-3 text-xl" placeholder="Senha" value={form.senha} onChange={(e) => setForm((f) => ({ ...f, senha: e.target.value }))} />
-            <select className="input-hub rounded-xl p-3 text-xl" value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}>
-              <option value="ADMIN_MASTER">ADMIN MASTER</option>
-              <option value="TIME_COMERCIAL">TIME COMERCIAL</option>
-            </select>
             {isAdminMaster && (
               <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-3">
                 {USER_PERMISSION_OPTIONS.map((option) => {
@@ -87,7 +84,7 @@ export default function UsuariosPage() {
         <div className="space-y-3 text-xl">
           {usuarios.map((u) => (
             <div key={u.id} className="border border-white/70 rounded-xl px-3 py-2 flex justify-between">
-              <span>{u.nome} ({u.role})</span>
+              <span>{u.nome} ({u.cargo || 'Sem cargo'})</span>
               <span>{u.email}</span>
             </div>
           ))}

@@ -20,14 +20,6 @@ public class MaterialDtos {
             @NotNull Long tamanhoBytes
     ) {}
 
-    public record UpdateMaterialRequest(
-            @NotBlank @Size(max = 160) String titulo,
-            @NotNull MaterialTipoArquivo tipoArquivo,
-            @Size(max = 180) String pastaDestino,
-            @Size(max = 500) String caminhoRelativo,
-            String descricao
-    ) {}
-
     public record MaterialUploadResponse(
             String storageKey,
             String arquivoUrl,

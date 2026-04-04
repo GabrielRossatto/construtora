@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import AppLayout from '../layouts/AppLayout'
 import { useAuth } from '../hooks/useAuth'
 import { hubService } from '../services/hubService'
@@ -90,17 +91,6 @@ function createEditPayload(item) {
     },
     dataInicioObra: item.dataInicioObra ? `${item.dataInicioObra.slice(5, 7)}/${item.dataInicioObra.slice(0, 4)}` : '',
     dataEntrega: item.dataEntrega ? `${item.dataEntrega.slice(5, 7)}/${item.dataEntrega.slice(0, 4)}` : ''
-  }
-}
-
-function createMaterialEditPayload(material) {
-  return {
-    id: material.id,
-    titulo: material.titulo || '',
-    tipoArquivo: material.tipoArquivo || 'PDF',
-    pastaDestino: material.pastaDestino || '',
-    caminhoRelativo: material.caminhoRelativo || '',
-    descricao: material.descricao || ''
   }
 }
 
@@ -288,13 +278,23 @@ export default function EmpreendimentosPage() {
   const [activeEditTab, setActiveEditTab] = useState('dados')
   const [expandedTipoIds, setExpandedTipoIds] = useState([])
   const [empreendimentoMateriais, setEmpreendimentoMateriais] = useState([])
-  const [editingMaterialId, setEditingMaterialId] = useState(null)
-  const [editingMaterialPayload, setEditingMaterialPayload] = useState(null)
-  const [savingMaterialEdit, setSavingMaterialEdit] = useState(false)
   const [deletingMaterialId, setDeletingMaterialId] = useState(null)
+  const [materialToDelete, setMaterialToDelete] = useState(null)
+  const [openMaterialFolders, setOpenMaterialFolders] = useState({})
   const [buscandoCep, setBuscandoCep] = useState(false)
   const [pricingItem, setPricingItem] = useState(null)
   const [pricingPayload, setPricingPayload] = useState({ tipo: 'PERCENTUAL', valor: '', dataReferenciaTabelaVendas: '' })
+  const materiaisAgrupadosPorPasta = empreendimentoMateriais.reduce((groups, material) => {
+    const key = material.pastaDestino?.trim() || ''
+    if (!key) {
+      return groups
+    }
+    groups[key] = groups[key] || []
+    groups[key].push(material)
+    return groups
+  }, {})
+  const materiaisEmPastas = Object.entries(materiaisAgrupadosPorPasta)
+  const materiaisAvulsos = empreendimentoMateriais.filter((material) => !material.pastaDestino?.trim())
   const [savingPricing, setSavingPricing] = useState(false)
   const fotoInputRef = useRef(null)
 
@@ -342,8 +342,6 @@ export default function EmpreendimentosPage() {
     setExpandedTipoIds(nextPayload.tipos[0]?.id ? [nextPayload.tipos[0].id] : [])
     setEditFoto(null)
     setActiveEditTab('dados')
-    setEditingMaterialId(null)
-    setEditingMaterialPayload(null)
     if (fotoInputRef.current) {
       fotoInputRef.current.value = ''
     }
@@ -362,8 +360,8 @@ export default function EmpreendimentosPage() {
     setExpandedTipoIds([])
     setEditFoto(null)
     setEmpreendimentoMateriais([])
-    setEditingMaterialId(null)
-    setEditingMaterialPayload(null)
+    setMaterialToDelete(null)
+    setOpenMaterialFolders({})
     setBuscandoCep(false)
     if (fotoInputRef.current) {
       fotoInputRef.current.value = ''
@@ -535,45 +533,25 @@ export default function EmpreendimentosPage() {
     }
   }
 
-  async function submitMaterialEdit(e) {
-    e.preventDefault()
-    if (!editingMaterialId || !editingMaterialPayload || savingMaterialEdit) return
-    try {
-      setSavingMaterialEdit(true)
-      const updated = await hubService.atualizarMaterial(token, editingMaterialId, {
-        titulo: editingMaterialPayload.titulo,
-        tipoArquivo: editingMaterialPayload.tipoArquivo,
-        pastaDestino: editingMaterialPayload.pastaDestino || null,
-        caminhoRelativo: editingMaterialPayload.caminhoRelativo || null,
-        descricao: editingMaterialPayload.descricao || null
-      })
-      setEmpreendimentoMateriais((current) => current.map((material) => (material.id === updated.id ? updated : material)))
-      setEditingMaterialId(null)
-      setEditingMaterialPayload(null)
-      toast.success('Material atualizado com sucesso.')
-    } catch (error) {
-      toast.error(error.message || 'Não foi possível atualizar o material')
-    } finally {
-      setSavingMaterialEdit(false)
-    }
-  }
-
   async function deleteMaterial(material) {
     if (deletingMaterialId) return
-    if (!window.confirm(`Excluir o material "${material.titulo}"?`)) return
     try {
       setDeletingMaterialId(material.id)
       await hubService.excluirMaterial(token, material.id)
       setEmpreendimentoMateriais((current) => current.filter((item) => item.id !== material.id))
-      if (editingMaterialId === material.id) {
-        setEditingMaterialId(null)
-        setEditingMaterialPayload(null)
-      }
+      setMaterialToDelete(null)
     } catch (error) {
       toast.error(error.message || 'Não foi possível excluir o material')
     } finally {
       setDeletingMaterialId(null)
     }
+  }
+
+  function toggleMaterialFolder(folderName) {
+    setOpenMaterialFolders((current) => ({
+      ...current,
+      [folderName]: !current[folderName]
+    }))
   }
 
   async function submitPricing(e) {
@@ -661,18 +639,22 @@ export default function EmpreendimentosPage() {
               )}
               <img src={item.fotoPerfilUrl || semImagemEmpreendimento} alt={item.nome} className="rounded-3xl w-full h-[450px] object-cover" />
               <h3 className="text-[1.35rem] font-semibold mt-2 leading-6 h-12 line-clamp-2 overflow-hidden break-words">{item.nome}</h3>
-              <button
+              <Link
+                to={`/materiais-publicos/${item.publicToken}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-white/14 text-white border border-white/15 px-5 py-2 rounded-xl text-[1.35rem] mt-2 mb-1 leading-none inline-flex items-center"
-                onClick={() => window.open(`${window.location.origin}/materiais-publicos/${item.publicToken}`, '_blank', 'noopener,noreferrer')}
               >
                 Consultar material
-              </button>
-              <button
+              </Link>
+              <Link
+                to={`/tabela-vendas-publica/${item.publicToken}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-black/25 text-white border border-white/15 px-5 py-2 rounded-xl text-[1.35rem] mt-2 mb-1 leading-none inline-flex items-center"
-                onClick={() => window.open(`${window.location.origin}/tabela-vendas-publica/${item.publicToken}`, '_blank', 'noopener,noreferrer')}
               >
                 Tabela de vendas
-              </button>
+              </Link>
             </article>
           ))}
         </div>
@@ -1001,77 +983,55 @@ export default function EmpreendimentosPage() {
                     Nenhum material cadastrado para este empreendimento.
                   </div>
                 ) : (
-                  empreendimentoMateriais.map((material) => (
-                    <div key={material.id} className="rounded-2xl border border-white/15 bg-white/10 p-5">
-                      {editingMaterialId === material.id && editingMaterialPayload ? (
-                        <form onSubmit={submitMaterialEdit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Field label="Título">
-                            <input className="input-hub w-full rounded-2xl p-3" value={editingMaterialPayload.titulo} onChange={(e) => setEditingMaterialPayload((current) => ({ ...current, titulo: e.target.value }))} />
-                          </Field>
-                          <Field label="Tipo de arquivo">
-                            <select className="input-hub w-full rounded-2xl p-3" value={editingMaterialPayload.tipoArquivo} onChange={(e) => setEditingMaterialPayload((current) => ({ ...current, tipoArquivo: e.target.value }))}>
-                              <option value="PDF">PDF</option>
-                              <option value="IMAGEM">IMAGEM</option>
-                              <option value="EXCEL">EXCEL</option>
-                              <option value="DOCUMENTO">DOCUMENTO</option>
-                            </select>
-                          </Field>
-                          <Field label="Pasta de destino">
-                            <input className="input-hub w-full rounded-2xl p-3" value={editingMaterialPayload.pastaDestino} onChange={(e) => setEditingMaterialPayload((current) => ({ ...current, pastaDestino: e.target.value }))} />
-                          </Field>
-                          <Field label="Caminho relativo">
-                            <input className="input-hub w-full rounded-2xl p-3" value={editingMaterialPayload.caminhoRelativo} onChange={(e) => setEditingMaterialPayload((current) => ({ ...current, caminhoRelativo: e.target.value }))} />
-                          </Field>
-                          <Field label="Descrição" className="md:col-span-2">
-                            <textarea className="input-hub w-full rounded-2xl p-3 min-h-24" value={editingMaterialPayload.descricao} onChange={(e) => setEditingMaterialPayload((current) => ({ ...current, descricao: e.target.value }))} />
-                          </Field>
-                          <div className="md:col-span-2 flex justify-end gap-3">
-                            <button type="button" onClick={() => { setEditingMaterialId(null); setEditingMaterialPayload(null) }} disabled={savingMaterialEdit} className="px-5 py-2 rounded-xl bg-white/12 border border-white/15 text-white font-medium disabled:opacity-70">Cancelar</button>
-                            <button type="submit" disabled={savingMaterialEdit} className="px-5 py-2 rounded-xl bg-hubBlueDeep text-white font-semibold disabled:opacity-70">
-                              {savingMaterialEdit ? 'Salvando...' : 'Salvar material'}
-                            </button>
-                          </div>
-                        </form>
-                      ) : (
+                  <>
+                    {materiaisEmPastas.map(([pasta, pastaMateriais]) => (
+                      <div key={pasta} className="rounded-2xl border border-white/15 bg-white/10 p-5">
                         <div className="flex items-start justify-between gap-4">
                           <div>
-                            <h3 className="text-xl font-semibold text-white">{material.titulo}</h3>
-                            <p className="mt-2 text-sm text-white/70">Tipo: {material.tipoArquivo}</p>
-                            {material.pastaDestino && <p className="mt-1 text-sm text-white/70">Pasta: {material.pastaDestino}</p>}
-                            {material.caminhoRelativo && <p className="mt-1 text-sm text-white/60">{material.caminhoRelativo}</p>}
+                            <h3 className="text-xl font-semibold text-white">{pasta}</h3>
+                            <p className="mt-1 text-sm text-white/70">{pastaMateriais.length} arquivo(s) nesta pasta</p>
                           </div>
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingMaterialId(material.id)
-                                setEditingMaterialPayload(createMaterialEditPayload(material))
-                              }}
-                              className="h-9 w-9 rounded-full bg-white text-black shadow-md grid place-items-center transition-transform duration-100 ease-in-out hover:scale-110"
-                            >
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
-                                <path d="M4 20h4l10-10-4-4L4 16v4Z" />
-                                <path d="m12 6 4 4" />
-                              </svg>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => deleteMaterial(material)}
-                              disabled={deletingMaterialId === material.id}
-                              className="h-9 w-9 rounded-full bg-white text-black shadow-md grid place-items-center transition-transform duration-100 ease-in-out hover:scale-110 disabled:opacity-50"
-                            >
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
-                                <path d="M3 6h18" />
-                                <path d="M8 6V4h8v2" />
-                                <path d="M19 6l-1 14H6L5 6" />
-                                <path d="M10 11v6M14 11v6" />
-                              </svg>
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => toggleMaterialFolder(pasta)}
+                            className="rounded-full border border-white/15 bg-black/20 px-4 py-2 text-sm font-semibold text-white"
+                          >
+                            {openMaterialFolders[pasta] ? 'Fechar pasta' : 'Abrir pasta'}
+                          </button>
                         </div>
-                      )}
-                    </div>
-                  ))
+                        {openMaterialFolders[pasta] && (
+                          <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+                            {pastaMateriais.map((material) => (
+                              <MaterialEditableCard
+                                key={material.id}
+                                material={material}
+                                deletingMaterialId={deletingMaterialId}
+                                setMaterialToDelete={setMaterialToDelete}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {materiaisAvulsos.length > 0 && (
+                      <div className="rounded-2xl border border-white/15 bg-white/10 p-5">
+                        <div className="mb-4 border-b border-white/10 pb-4">
+                          <h3 className="text-xl font-semibold text-white">Arquivos avulsos</h3>
+                        </div>
+                        <div className="space-y-3">
+                          {materiaisAvulsos.map((material) => (
+                            <MaterialEditableCard
+                              key={material.id}
+                              material={material}
+                              deletingMaterialId={deletingMaterialId}
+                              setMaterialToDelete={setMaterialToDelete}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -1155,7 +1115,66 @@ export default function EmpreendimentosPage() {
           </div>
         </div>
       )}
+
+      {materialToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="glass-panel w-full max-w-lg rounded-3xl p-7 shadow-2xl text-white">
+            <h2 className="text-xl font-semibold text-white mb-2">Deseja mesmo excluir este material?</h2>
+            <p className="text-sm text-white/70 mb-6 line-clamp-2">{materialToDelete.titulo}</p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => deleteMaterial(materialToDelete)}
+                disabled={deletingMaterialId === materialToDelete.id}
+                className="px-5 py-2 rounded-xl bg-red-600 text-white text-base font-medium hover:bg-red-700 disabled:opacity-70"
+              >
+                {deletingMaterialId === materialToDelete.id ? 'Excluindo...' : 'Sim'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMaterialToDelete(null)}
+                disabled={deletingMaterialId === materialToDelete.id}
+                className="px-5 py-2 rounded-xl bg-white/12 border border-white/15 text-white text-base font-semibold hover:opacity-95 disabled:opacity-70"
+              >
+                Não
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
+  )
+}
+
+function MaterialEditableCard({
+  material,
+  deletingMaterialId,
+  setMaterialToDelete,
+}) {
+  return (
+    <div className="rounded-2xl border border-white/15 bg-black/15 p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-white">{material.caminhoRelativo || material.titulo}</h3>
+          {material.caminhoRelativo && <p className="mt-2 text-sm text-white/60">{material.titulo}</p>}
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setMaterialToDelete(material)}
+            disabled={deletingMaterialId === material.id}
+            className="h-9 w-9 rounded-full bg-white text-black shadow-md grid place-items-center transition-transform duration-100 ease-in-out hover:scale-110 disabled:opacity-50"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+              <path d="M3 6h18" />
+              <path d="M8 6V4h8v2" />
+              <path d="M19 6l-1 14H6L5 6" />
+              <path d="M10 11v6M14 11v6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 

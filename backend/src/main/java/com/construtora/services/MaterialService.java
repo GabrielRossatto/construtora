@@ -83,17 +83,6 @@ public class MaterialService {
     }
 
     @Transactional
-    public MaterialDtos.MaterialResponse update(Long id, MaterialDtos.UpdateMaterialRequest request) {
-        Material material = findByIdInTenant(id);
-        material.setTitulo(request.titulo().trim());
-        material.setTipoArquivo(request.tipoArquivo());
-        material.setPastaDestino(request.pastaDestino() != null && !request.pastaDestino().isBlank() ? request.pastaDestino().trim() : null);
-        material.setCaminhoRelativo(request.caminhoRelativo() != null && !request.caminhoRelativo().isBlank() ? request.caminhoRelativo().trim() : null);
-        material.setDescricao(request.descricao() != null && !request.descricao().isBlank() ? request.descricao().trim() : null);
-        return toResponse(materialRepository.save(material));
-    }
-
-    @Transactional
     public void delete(Long id) {
         Material material = findByIdInTenant(id);
         materialRepository.delete(material);

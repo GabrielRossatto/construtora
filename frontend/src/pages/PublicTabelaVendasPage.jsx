@@ -257,18 +257,18 @@ export default function PublicTabelaVendasPage() {
                   <p className="mt-2 text-[11px] leading-5 text-white/85">{formatAddress(data.localizacao)}</p>
                 )}
               </div>
-              <div className="flex items-start justify-center gap-3 text-center lg:text-left">
-                <div className="text-left">
+              <div className="flex items-center justify-center gap-3 text-center">
+                <div className="text-center">
                   <p className="text-[2.15rem] font-semibold leading-none tracking-tight">CUB</p>
                   <p className="text-[2.15rem] font-light leading-none tracking-tight">SC</p>
                 </div>
                 <div className="h-14 w-px bg-white/45" />
-                <div className="text-left uppercase leading-none">
+                <div className="text-center uppercase leading-none">
                   <p className="text-[2rem] font-semibold tracking-tight">Tabela</p>
                   <p className="text-[2rem] font-light tracking-tight">de Preços</p>
                 </div>
               </div>
-              <div className="flex flex-col items-end justify-between text-right">
+              <div className="flex flex-col items-center justify-center text-center">
                 <p className="text-sm uppercase tracking-[0.22em] text-white/75">Empreendimento</p>
                 <p className="text-2xl font-semibold leading-tight">{data.empreendimentoNome}</p>
               </div>
@@ -334,19 +334,6 @@ export default function PublicTabelaVendasPage() {
                     </tr>
                   ))}
                 </tbody>
-                <tfoot>
-                  <tr style={{ background: theme.accent, color: '#fff' }}>
-                    <td className="border px-3 py-2 text-left text-[12px] font-semibold" style={{ borderColor: theme.accentDark }} colSpan={Math.max(1, Math.floor((tipos.length + 1) / 3))}>
-                      * Unidades especiais
-                    </td>
-                    <td className="border px-3 py-2 text-center text-[1.1rem] font-semibold" style={{ borderColor: theme.accentDark }} colSpan={Math.max(1, Math.ceil((tipos.length + 1) / 3))}>
-                      {data.empreendimentoNome}
-                    </td>
-                    <td className="border px-3 py-2 text-right text-[12px] font-semibold" style={{ borderColor: theme.accentDark }} colSpan={Math.max(1, tipos.length + 1 - Math.max(1, Math.floor((tipos.length + 1) / 3)) - Math.max(1, Math.ceil((tipos.length + 1) / 3)))}>
-                      Correção CUB SC
-                    </td>
-                  </tr>
-                </tfoot>
               </table>
             </div>
           </div>
@@ -411,7 +398,7 @@ export default function PublicTabelaVendasPage() {
           </aside>
         </section>
         <p className="mt-4 text-center text-[11px] uppercase tracking-[0.16em]" style={{ color: theme.muted }}>
-          {tabelaConfig?.textoRodape || 'Valores sujeitos a reajuste mensal conforme índice CUB/SC. Materiais e condições conforme cadastro vigente.'}
+          {tabelaConfig?.textoRodape || 'Materiais e condições conforme cadastro vigente.'}
         </p>
       </main>
     </div>

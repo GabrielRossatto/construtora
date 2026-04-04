@@ -9,7 +9,7 @@ export default function MeusDadosPage() {
   const toast = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ nome: '', email: '', telefone: '', senha: '', role: '' })
+  const [form, setForm] = useState({ nome: '', email: '', telefone: '', senha: '', cargo: '' })
   const [empresaNome, setEmpresaNome] = useState('')
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function MeusDadosPage() {
           email: data.email || '',
           telefone: data.telefone || '',
           senha: '',
-          role: data.role || ''
+          cargo: data.cargo || ''
         })
         setEmpresaNome(empresa?.nome || '')
       })
@@ -40,15 +40,15 @@ export default function MeusDadosPage() {
         nome: form.nome,
         email: form.email,
         telefone: form.telefone,
+        cargo: form.cargo,
         senha: form.senha.trim() ? form.senha : null
       }
       const updated = await hubService.atualizarMeuPerfil(token, payload)
       updateUser({
         nome: updated.nome,
-        email: updated.email,
-        role: updated.role
+        email: updated.email
       })
-      setForm((current) => ({ ...current, senha: '', role: updated.role || current.role }))
+      setForm((current) => ({ ...current, senha: '', cargo: updated.cargo || current.cargo }))
       toast.success('Dados atualizados com sucesso.')
     } catch (error) {
       toast.error(error.message || 'Não foi possível atualizar seus dados')
@@ -77,8 +77,8 @@ export default function MeusDadosPage() {
               <input className="input-hub rounded-xl p-3 text-xl w-full" value={form.telefone} onChange={(e) => setForm((f) => ({ ...f, telefone: e.target.value }))} />
             </label>
             <label className="block">
-              <span className="block mb-1">Perfil</span>
-              <input className="input-hub rounded-xl p-3 text-xl w-full opacity-80" value={form.role} disabled readOnly />
+              <span className="block mb-1">Cargo</span>
+              <input className="input-hub rounded-xl p-3 text-xl w-full" value={form.cargo} onChange={(e) => setForm((f) => ({ ...f, cargo: e.target.value }))} />
             </label>
             <label className="block md:col-span-2">
               <span className="block mb-1">Nova senha (opcional)</span>

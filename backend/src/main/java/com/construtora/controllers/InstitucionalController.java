@@ -29,7 +29,7 @@ public class InstitucionalController {
     }
 
     @PostMapping(consumes = "multipart/form-data")
-    @PreAuthorize("@permissionService.hasPermission(authentication, 'VIEW_ENTERPRISE')")
+    @PreAuthorize("@permissionService.hasPermission(authentication, 'CREATE_MATERIAL')")
     public InstitucionalDtos.InstitucionalArquivoResponse create(
             @RequestPart("payload") @Valid InstitucionalDtos.CreateInstitucionalArquivoRequest request,
             @RequestPart(value = "arquivo", required = false) MultipartFile arquivo
@@ -38,7 +38,7 @@ public class InstitucionalController {
     }
 
     @PutMapping(value = "/{id}", consumes = "multipart/form-data")
-    @PreAuthorize("@permissionService.hasPermission(authentication, 'VIEW_ENTERPRISE')")
+    @PreAuthorize("@permissionService.hasPermission(authentication, 'CREATE_MATERIAL')")
     public InstitucionalDtos.InstitucionalArquivoResponse update(
             @PathVariable Long id,
             @RequestPart("payload") @Valid InstitucionalDtos.CreateInstitucionalArquivoRequest request,
@@ -48,9 +48,15 @@ public class InstitucionalController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("@permissionService.hasPermission(authentication, 'VIEW_ENTERPRISE')")
+    @PreAuthorize("@permissionService.hasPermission(authentication, 'CREATE_MATERIAL')")
     public void delete(@PathVariable Long id) {
         institucionalService.delete(id);
+    }
+
+    @DeleteMapping("/pastas/{pastaDestino}")
+    @PreAuthorize("@permissionService.hasPermission(authentication, 'CREATE_MATERIAL')")
+    public void deleteFolder(@PathVariable String pastaDestino) {
+        institucionalService.deleteFolder(pastaDestino);
     }
 
     @GetMapping("/{id}/download")

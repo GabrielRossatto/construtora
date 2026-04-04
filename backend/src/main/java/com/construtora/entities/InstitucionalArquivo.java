@@ -34,6 +34,12 @@ public class InstitucionalArquivo {
     @Column(name = "arquivo_nome", length = 255)
     private String arquivoNome;
 
+    @Column(name = "pasta_destino", length = 180)
+    private String pastaDestino;
+
+    @Column(name = "caminho_relativo", length = 500)
+    private String caminhoRelativo;
+
     @Column(name = "link_url", length = 1000)
     private String linkUrl;
 

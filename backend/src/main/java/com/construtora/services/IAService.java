@@ -1,7 +1,9 @@
 package com.construtora.services;
 
 import com.construtora.dtos.EmpreendimentoDtos;
+import com.construtora.dtos.EmpresaDtos;
 import com.construtora.dtos.IaDtos;
+import com.construtora.dtos.InstitucionalDtos;
 import com.construtora.dtos.MaterialDtos;
 import com.construtora.entities.IaInteracao;
 import com.construtora.entities.IaUsoMensal;
@@ -44,6 +46,8 @@ public class IAService {
     private final CurrentSessionService currentSessionService;
     private final EmpreendimentoService empreendimentoService;
     private final MaterialService materialService;
+    private final InstitucionalService institucionalService;
+    private final EmpresaService empresaService;
     private final OpenAIService openAIService;
     private final IntentClassifierService intentClassifierService;
     private final PromptStrategyService promptStrategyService;
@@ -60,6 +64,8 @@ public class IAService {
     public IAService(CurrentSessionService currentSessionService,
                      EmpreendimentoService empreendimentoService,
                      MaterialService materialService,
+                     InstitucionalService institucionalService,
+                     EmpresaService empresaService,
                      OpenAIService openAIService,
                      IntentClassifierService intentClassifierService,
                      PromptStrategyService promptStrategyService,
@@ -75,6 +81,8 @@ public class IAService {
         this.currentSessionService = currentSessionService;
         this.empreendimentoService = empreendimentoService;
         this.materialService = materialService;
+        this.institucionalService = institucionalService;
+        this.empresaService = empresaService;
         this.openAIService = openAIService;
         this.intentClassifierService = intentClassifierService;
         this.promptStrategyService = promptStrategyService;
@@ -95,12 +103,13 @@ public class IAService {
         AuthUserPrincipal currentUser = currentSessionService.currentUser();
         String pergunta = request.pergunta().trim();
         Long empreendimentoIdSelecionado = request.empreendimentoId();
+        IaDtos.ContextoModoIA contextoModo = request.contextoModo() == null ? IaDtos.ContextoModoIA.EMPREENDIMENTO : request.contextoModo();
         String nomeUsuario = safeForAi(extrairPrimeiroNome(null, currentUser.getEmail()));
 
         if (request.empresaId() != null && !empresaIdSessao.equals(request.empresaId())) {
             throw new BadRequestException("Empresa inválida para a sessão atual");
         }
-        if (empreendimentoIdSelecionado == null) {
+        if (IaDtos.ContextoModoIA.EMPREENDIMENTO.equals(contextoModo) && empreendimentoIdSelecionado == null) {
             throw new BadRequestException("Selecione um empreendimento para continuar");
         }
 
@@ -119,6 +128,10 @@ public class IAService {
                     0,
                     usoMensal
             );
+        }
+
+        if (IaDtos.ContextoModoIA.INSTITUCIONAL.equals(contextoModo)) {
+            return responderModoInstitucional(empresaIdSessao, currentUser, pergunta, usoMensal, nomeUsuario);
         }
 
         List<IaInteracao> interacoesEmpreendimento = buscarInteracoesRecentesDoEmpreendimento(
@@ -398,6 +411,77 @@ public class IAService {
                 empreendimentoIdSelecionado,
                 pergunta,
                 respostaSanitizada,
+                aiResult.totalTokens(),
+                usoMensal
+        );
+    }
+
+    private IaDtos.RespostaDTO responderModoInstitucional(Long empresaIdSessao,
+                                                          AuthUserPrincipal currentUser,
+                                                          String pergunta,
+                                                          IaUsoMensal usoMensal,
+                                                          String nomeUsuario) {
+        EmpresaDtos.EmpresaResponse empresa = empresaService.getMyEmpresa();
+        List<InstitucionalDtos.InstitucionalArquivoResponse> institucionais = institucionalService.list();
+        List<IaInteracao> memoriaUsuario = iaInteracaoRepository
+                .findTop5ByEmpresaIdAndUsuarioIdOrderByCreatedAtDesc(empresaIdSessao, currentUser.getUserId());
+
+        Map<String, Object> contexto = new LinkedHashMap<>();
+        Map<String, Object> empresaContexto = new LinkedHashMap<>();
+        empresaContexto.put("id", empresa.id());
+        empresaContexto.put("nome", blank(empresa.nome()));
+        empresaContexto.put("cnpj", blank(empresa.cnpj()));
+        empresaContexto.put("plano", empresa.plano() == null ? null : empresa.plano().name());
+        empresaContexto.put("iconeUrl", blank(empresa.iconeUrl()));
+        contexto.put("contextoTipo", "INSTITUCIONAL_EMPRESA");
+        contexto.put("empresa", empresaContexto);
+        contexto.put("nomeUsuario", safeForAi(nomeUsuario));
+        contexto.put("perguntaAtual", pergunta);
+        contexto.put("institucional", institucionais.stream()
+                .map(item -> {
+                    Map<String, Object> institucionalItem = new LinkedHashMap<>();
+                    institucionalItem.put("titulo", blank(item.titulo()));
+                    institucionalItem.put("arquivoNome", blank(item.arquivoNome()));
+                    institucionalItem.put("arquivoUrl", blank(item.arquivoUrl()));
+                    institucionalItem.put("link", blank(item.link()));
+                    return institucionalItem;
+                })
+                .toList());
+        contexto.put("memoriaCurta", memoriaUsuario == null ? List.of() : memoriaUsuario.stream()
+                .sorted(Comparator.comparing(IaInteracao::getCreatedAt))
+                .limit(5)
+                .map(item -> Map.of(
+                        "pergunta", blank(item.getPergunta()),
+                        "resposta", blank(item.getResposta())
+                ))
+                .toList());
+
+        String contextoJson;
+        try {
+            contextoJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(sanitizeForAi(contexto));
+        } catch (JsonProcessingException ex) {
+            throw new BadRequestException("Falha ao montar o contexto institucional da IA");
+        }
+
+        String userPrompt = """
+                Aqui estão os dados institucionais da construtora em JSON:
+                %s
+
+                Pergunta do time comercial:
+                %s
+                """.formatted(contextoJson, pergunta);
+
+        OpenAIService.OpenAIResult aiResult = perguntaComFallbackPorLimite(
+                iaPromptFactory.buildInstitutionalStrategySystemPrompt(),
+                userPrompt,
+                null
+        );
+        return salvarResposta(
+                empresaIdSessao,
+                currentUser.getUserId(),
+                null,
+                pergunta,
+                aiResult.resposta(),
                 aiResult.totalTokens(),
                 usoMensal
         );

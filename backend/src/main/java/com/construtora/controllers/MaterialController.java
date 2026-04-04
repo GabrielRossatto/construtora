@@ -39,13 +39,6 @@ public class MaterialController {
         return materialService.list();
     }
 
-    @PutMapping("/{id}")
-    @PreAuthorize("@permissionService.hasPermission(authentication, 'CREATE_MATERIAL')")
-    public MaterialDtos.MaterialResponse update(@PathVariable Long id,
-                                                @RequestBody @Valid MaterialDtos.UpdateMaterialRequest request) {
-        return materialService.update(id, request);
-    }
-
     @DeleteMapping("/{id}")
     @PreAuthorize("@permissionService.hasPermission(authentication, 'CREATE_MATERIAL')")
     public void delete(@PathVariable Long id) {

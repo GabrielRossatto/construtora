@@ -33,7 +33,8 @@ public class UserService {
     private static final Set<String> MANAGEABLE_PERMISSION_CODES = Set.of(
             "CREATE_DEVELOPMENT",
             "CREATE_USER",
-            "CREATE_MATERIAL"
+            "CREATE_MATERIAL",
+            "CREATE_ENTERPRISE"
     );
 
     public UserService(UserAccountRepository userAccountRepository,
@@ -67,6 +68,7 @@ public class UserService {
                 .nome(request.nome())
                 .email(emailNormalizado)
                 .telefone(request.telefone())
+                .cargo(request.cargo())
                 .senhaHash(passwordEncoder.encode(request.senha()))
                 .role(role)
                 .customPermissions(customPermissions)
@@ -112,6 +114,7 @@ public class UserService {
         user.setNome(request.nome());
         user.setEmail(emailNormalizado);
         user.setTelefone(request.telefone());
+        user.setCargo(request.cargo());
 
         if (request.senha() != null && !request.senha().isBlank()) {
             user.setSenhaHash(passwordEncoder.encode(request.senha()));
@@ -128,6 +131,7 @@ public class UserService {
                 user.getNome(),
                 user.getEmail(),
                 user.getTelefone(),
+                user.getCargo(),
                 user.getRole().getName().name(),
                 user.getAtivo(),
                 user.getCustomPermissions().stream().map(Permission::getCode).sorted().toList()
@@ -140,6 +144,7 @@ public class UserService {
                 user.getNome(),
                 user.getEmail(),
                 user.getTelefone(),
+                user.getCargo(),
                 user.getRole().getName().name()
         );
     }

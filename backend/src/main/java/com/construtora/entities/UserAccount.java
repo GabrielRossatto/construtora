@@ -36,6 +36,9 @@ public class UserAccount {
     @Column(length = 30)
     private String telefone;
 
+    @Column(length = 120)
+    private String cargo;
+
     @Column(name = "senha_hash", nullable = false, length = 255)
     private String senhaHash;
 

@@ -58,6 +58,8 @@ public class InstitucionalService {
                 .titulo(request.titulo().trim())
                 .arquivoUrl(arquivoUrl)
                 .arquivoNome(arquivoNome)
+                .pastaDestino(request.pastaDestino() != null && !request.pastaDestino().isBlank() ? request.pastaDestino().trim() : null)
+                .caminhoRelativo(request.caminhoRelativo() != null && !request.caminhoRelativo().isBlank() ? request.caminhoRelativo().trim() : null)
                 .linkUrl(link)
                 .build());
 
@@ -83,6 +85,8 @@ public class InstitucionalService {
         }
 
         entity.setTitulo(request.titulo().trim());
+        entity.setPastaDestino(request.pastaDestino() != null && !request.pastaDestino().isBlank() ? request.pastaDestino().trim() : null);
+        entity.setCaminhoRelativo(request.caminhoRelativo() != null && !request.caminhoRelativo().isBlank() ? request.caminhoRelativo().trim() : null);
         entity.setLinkUrl(link);
 
         return toResponse(institucionalArquivoRepository.save(entity));
@@ -93,6 +97,23 @@ public class InstitucionalService {
         InstitucionalArquivo entity = institucionalArquivoRepository.findByIdAndEmpresaId(id, currentSessionService.empresaId())
                 .orElseThrow(() -> new NotFoundException("Arquivo institucional não encontrado"));
         institucionalArquivoRepository.delete(entity);
+    }
+
+    @Transactional
+    public void deleteFolder(String pastaDestino) {
+        String folder = pastaDestino == null ? "" : pastaDestino.trim();
+        if (folder.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "Pasta institucional inválida");
+        }
+
+        int deleted = institucionalArquivoRepository.deleteAllByEmpresaIdAndPastaDestino(
+                currentSessionService.empresaId(),
+                folder
+        );
+
+        if (deleted == 0) {
+            throw new NotFoundException("Pasta institucional não encontrada");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -127,6 +148,8 @@ public class InstitucionalService {
                 entity.getTitulo(),
                 entity.getArquivoUrl(),
                 entity.getArquivoNome(),
+                entity.getPastaDestino(),
+                entity.getCaminhoRelativo(),
                 entity.getLinkUrl(),
                 entity.getDataCriacao()
         );

@@ -14,6 +14,7 @@ public class UserDtos {
             @NotBlank @Size(max = 120) String nome,
             @NotBlank @Email @Size(max = 150) String email,
             @Size(max = 30) String telefone,
+            @NotBlank @Size(max = 120) String cargo,
             @NotBlank @Size(min = 8, max = 100) String senha,
             @NotNull RoleName role,
             List<String> permissionCodes
@@ -25,6 +26,7 @@ public class UserDtos {
             String nome,
             String email,
             String telefone,
+            String cargo,
             String role,
             Boolean ativo,
             List<String> permissionCodes
@@ -35,6 +37,7 @@ public class UserDtos {
             String nome,
             String email,
             String telefone,
+            String cargo,
             String role
     ) {}
 
@@ -42,6 +45,7 @@ public class UserDtos {
             @NotBlank @Size(max = 120) String nome,
             @NotBlank @Email @Size(max = 150) String email,
             @Size(max = 30) String telefone,
+            @Size(max = 120) String cargo,
             @Size(min = 8, max = 100) String senha
     ) {}
 }

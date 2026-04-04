@@ -13,7 +13,7 @@ import InstitucionalPage from './pages/InstitucionalPage'
 import TabelaVendasBackofficePage from './pages/TabelaVendasBackofficePage'
 import { useAuth } from './hooks/useAuth'
 
-const CREATE_PERMISSIONS = ['CREATE_DEVELOPMENT', 'CREATE_USER', 'CREATE_MATERIAL']
+const CADASTROS_PERMISSIONS = ['CREATE_DEVELOPMENT', 'CREATE_USER', 'CREATE_MATERIAL', 'VIEW_MATERIAL']
 const INTERNAL_ADMIN_EMAILS = ['admin.teste.20260328090502@construtora.local', 'dasdasdosdos1212@gmail.com']
 
 function ProtectedRoute({ children, requireAnyPermission = null, requireInternalAdmin = false }) {
@@ -43,7 +43,7 @@ export default function App() {
       <Route
         path="/cadastros"
         element={
-          <ProtectedRoute requireAnyPermission={CREATE_PERMISSIONS}>
+          <ProtectedRoute requireAnyPermission={CADASTROS_PERMISSIONS}>
             <CadastrosPage />
           </ProtectedRoute>
         }

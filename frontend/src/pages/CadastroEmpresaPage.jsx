@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { hubService } from '../services/hubService'
-import logoCommercialHub from '../assets/logo-commercial-hub.jpeg'
+import logoCommercialHub from '../assets/logo-commercial-hub.png'
 
 const PLAN_OPTIONS = [
   {
@@ -83,7 +83,7 @@ export default function CadastroEmpresaPage() {
           <img
             src={logoCommercialHub}
             alt="Commercial HUB"
-            className="h-32 w-auto max-w-full object-contain"
+            className="h-[178px] w-auto max-w-full object-contain"
           />
           <p className="mt-6 max-w-xl text-lg leading-8 text-white/80">
             Cadastre uma nova construtora e já crie o usuário administrador inicial da empresa.

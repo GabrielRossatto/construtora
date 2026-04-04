@@ -7,6 +7,11 @@ import java.time.Instant;
 
 public class IaDtos {
 
+    public enum ContextoModoIA {
+        EMPREENDIMENTO,
+        INSTITUCIONAL
+    }
+
     public enum IntencaoIA {
         CONSULTA_PRECO,
         BUSCA_MATERIAL,
@@ -16,6 +21,7 @@ public class IaDtos {
     public record PerguntaRequestDTO(
             Long empresaId,
             Long empreendimentoId,
+            ContextoModoIA contextoModo,
             @NotBlank @Size(max = 4000) String pergunta
     ) {}
 
