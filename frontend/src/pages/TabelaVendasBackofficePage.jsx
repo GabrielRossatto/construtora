@@ -24,6 +24,12 @@ const EMPTY_FORM = {
   divisaoInferiorPercentual: 50
 }
 
+function normalizeColorInput(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, '')
+}
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value))
 }
@@ -156,7 +162,13 @@ export default function TabelaVendasBackofficePage() {
     if (!selectedEmpresaId || saving) return
     try {
       setSaving(true)
-      await hubService.salvarInternalTabelaVendasConfig(null, selectedEmpresaId, form)
+      await hubService.salvarInternalTabelaVendasConfig(null, selectedEmpresaId, {
+        ...form,
+        corPrimaria: normalizeColorInput(form.corPrimaria),
+        corSecundaria: normalizeColorInput(form.corSecundaria),
+        corTexto: normalizeColorInput(form.corTexto),
+        corFundo: normalizeColorInput(form.corFundo)
+      })
       toast.success('Configuração publicada para a empresa selecionada.')
     } catch (error) {
       toast.error(error.message || 'Não foi possível salvar a configuração.')
