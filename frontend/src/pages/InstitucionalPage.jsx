@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import AppLayout from '../layouts/AppLayout'
 import { useAuth } from '../hooks/useAuth'
 import { hubService } from '../services/hubService'
+import { getApiBaseUrl } from '../services/apiBase'
 import { useToast } from '../hooks/useToast'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
+const API_URL = getApiBaseUrl()
 
 function getInstitucionalFolderName(item) {
   const explicitFolder = item?.pastaDestino?.trim()

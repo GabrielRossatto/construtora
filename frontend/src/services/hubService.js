@@ -1,4 +1,5 @@
 import { api } from './api'
+import { getApiBaseUrl } from './apiBase'
 
 export const hubService = {
   criarEmpresa(payload) {
@@ -116,11 +117,11 @@ export const hubService = {
     return api.request(`/api/public/empreendimentos/${publicToken}/materiais`)
   },
   publicMateriaisZip(publicToken) {
-    const baseUrl = import.meta.env.VITE_API_URL || ''
+    const baseUrl = getApiBaseUrl()
     return `${baseUrl}/api/public/empreendimentos/${publicToken}/materiais/zip`
   },
   publicMateriaisFolderZip(publicToken, pastaDestino) {
-    const baseUrl = import.meta.env.VITE_API_URL || ''
+    const baseUrl = getApiBaseUrl()
     return `${baseUrl}/api/public/empreendimentos/${publicToken}/materiais/pastas/${encodeURIComponent(pastaDestino)}/zip`
   }
 }

@@ -1,4 +1,6 @@
-const BASE_URL = import.meta.env.VITE_API_URL || ''
+import { getApiBaseUrl } from './apiBase'
+
+const BASE_URL = getApiBaseUrl()
 
 async function request(path, { method = 'GET', token, body, headers = {} } = {}) {
   const isFormData = body instanceof FormData
