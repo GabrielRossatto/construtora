@@ -33,4 +33,5 @@ public class EmpresaController {
     public EmpresaDtos.EmpresaResponse updateIcon(@RequestPart("icone") MultipartFile icone) {
         return empresaService.updateMyIcon(icone);
     }
+
 }

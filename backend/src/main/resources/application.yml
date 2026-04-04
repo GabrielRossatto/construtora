@@ -37,6 +37,13 @@ app:
     access-key: ${S3_ACCESS_KEY:}
     secret-key: ${S3_SECRET_KEY:}
     force-path-style: ${S3_FORCE_PATH_STYLE:true}
+  ai:
+    monthly-question-limit: ${AI_MONTHLY_QUESTION_LIMIT:300}
+    context-cache-ttl-seconds: ${AI_CONTEXT_CACHE_TTL_SECONDS:90}
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      model: ${OPENAI_MODEL:gpt-5.4}
+      max-output-tokens: ${OPENAI_MAX_OUTPUT_TOKENS:1000}
 
 management:
   endpoints:

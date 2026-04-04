@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import AppLayout from '../layouts/AppLayout'
 import { useAuth } from '../hooks/useAuth'
 import { hubService } from '../services/hubService'
+import { useToast } from '../hooks/useToast'
 
 const USER_PERMISSION_OPTIONS = [
   { code: 'CREATE_DEVELOPMENT', label: 'Cadastrar empreendimentos' },
@@ -11,6 +12,7 @@ const USER_PERMISSION_OPTIONS = [
 
 export default function UsuariosPage() {
   const { token, user, hasPermission } = useAuth()
+  const toast = useToast()
   const isAdminMaster = user?.role === 'ADMIN_MASTER'
   const canCreateUser = hasPermission('CREATE_USER')
   const [usuarios, setUsuarios] = useState([])
@@ -30,9 +32,9 @@ export default function UsuariosPage() {
       await hubService.criarUsuario(token, payload)
       setForm({ nome: '', email: '', telefone: '', senha: '', role: 'TIME_COMERCIAL', permissionCodes: [] })
       await carregar()
-      alert('Usuário criado com sucesso')
+      toast.success('Usuário criado com sucesso.')
     } catch (error) {
-      alert(error.message || 'Não foi possível criar o usuário')
+      toast.error(error.message || 'Não foi possível criar o usuário')
     }
   }
 

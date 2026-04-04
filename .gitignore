@@ -3,4 +3,4 @@ frontend/dist/
 frontend/node_modules/
 .idea/
 docker/.env*
-!docker/.env.production.example
+!docker/.env*.example

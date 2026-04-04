@@ -10,5 +10,6 @@ public interface EmpreendimentoRepository extends JpaRepository<Empreendimento, 
     List<Empreendimento> findByEmpresaId(Long empresaId);
     Optional<Empreendimento> findByIdAndEmpresaId(Long id, Long empresaId);
     Optional<Empreendimento> findByPublicToken(String publicToken);
+    Optional<Empreendimento> findFirstByEmpresaIdOrderByIdAsc(Long empresaId);
     long countByEmpresaId(Long empresaId);
 }

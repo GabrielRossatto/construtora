@@ -5,9 +5,8 @@ services:
     image: mysql:8.4
     container_name: construtora_mysql
     restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: construtora_saas
+    env_file:
+      - ./.env.local.mysql
     ports:
       - "3307:3306"
     volumes:
@@ -22,21 +21,8 @@ services:
     depends_on:
       - mysql
       - minio
-    environment:
-      DB_URL: jdbc:mysql://mysql:3306/construtora_saas?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
-      DB_USER: root
-      DB_PASSWORD: root
-      JWT_SECRET: c3VwZXItc2VndXJlLWtleS13aXRoLW1vcmUtdGhhbi0zMi1jaGFycw==
-      JWT_EXPIRATION_MINUTES: 120
-      ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3000,http://localhost:8081
-      S3_BUCKET: construtora-files
-      S3_REGION: us-east-1
-      S3_ENDPOINT: http://minio:9000
-      S3_PUBLIC_BASE_URL: http://localhost:9000
-      S3_ACCESS_KEY: minioadmin
-      S3_SECRET_KEY: minioadmin
-      S3_FORCE_PATH_STYLE: true
-      S3_PUBLIC_READ: true
+    env_file:
+      - ./.env.local.backend
     ports:
       - "8080:8080"
 
@@ -50,8 +36,8 @@ services:
       - /app/node_modules
     depends_on:
       - backend
-    environment:
-      VITE_API_URL: http://localhost:8080
+    env_file:
+      - ./.env.local.frontend
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
     ports:
       - "8081:5173"
@@ -60,9 +46,8 @@ services:
     image: minio/minio:latest
     container_name: construtora_minio
     restart: unless-stopped
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+    env_file:
+      - ./.env.local.minio
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"

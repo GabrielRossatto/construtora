@@ -3,9 +3,11 @@ package com.construtora.services;
 import com.construtora.dtos.PublicDtos;
 import com.construtora.entities.Empreendimento;
 import com.construtora.entities.Material;
+import com.construtora.entities.TabelaVendasEmpresaConfig;
 import com.construtora.exceptions.NotFoundException;
 import com.construtora.repositories.EmpreendimentoRepository;
 import com.construtora.repositories.MaterialRepository;
+import com.construtora.repositories.TabelaVendasEmpresaConfigRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,13 +24,16 @@ public class PublicAccessService {
 
     private final EmpreendimentoRepository empreendimentoRepository;
     private final MaterialRepository materialRepository;
+    private final TabelaVendasEmpresaConfigRepository tabelaVendasEmpresaConfigRepository;
     private final FileStorageService fileStorageService;
 
     public PublicAccessService(EmpreendimentoRepository empreendimentoRepository,
                                MaterialRepository materialRepository,
+                               TabelaVendasEmpresaConfigRepository tabelaVendasEmpresaConfigRepository,
                                FileStorageService fileStorageService) {
         this.empreendimentoRepository = empreendimentoRepository;
         this.materialRepository = materialRepository;
+        this.tabelaVendasEmpresaConfigRepository = tabelaVendasEmpresaConfigRepository;
         this.fileStorageService = fileStorageService;
     }
 
@@ -81,10 +86,27 @@ public class PublicAccessService {
                 ))
                 .toList();
 
+        TabelaVendasEmpresaConfig tabelaConfig = tabelaVendasEmpresaConfigRepository.findByEmpresaId(empreendimento.getEmpresaId()).orElse(null);
+
         return new PublicDtos.PublicEmpreendimentoMateriaisResponse(
                 empreendimento.getId(),
                 empreendimento.getNome(),
                 empreendimento.getFotoPerfilUrl(),
+                empreendimento.getEmpresa() != null ? empreendimento.getEmpresa().getIconeUrl() : null,
+                tabelaConfig == null ? null : new PublicDtos.PublicTabelaConfig(
+                        tabelaConfig.getTema(),
+                        tabelaConfig.getCorPrimaria(),
+                        tabelaConfig.getCorSecundaria(),
+                        tabelaConfig.getCorTexto(),
+                        tabelaConfig.getCorFundo(),
+                        tabelaConfig.getTextoRodape(),
+                        tabelaConfig.getExibirEndereco(),
+                        tabelaConfig.getExibirIcone(),
+                        tabelaConfig.getPagamentoEmDestaque(),
+                        tabelaConfig.getLarguraColunaLateralPx(),
+                        tabelaConfig.getAlturaImagemPercentual(),
+                        tabelaConfig.getDivisaoInferiorPercentual()
+                ),
                 empreendimento.getDescricao(),
                 localizacao,
                 tipos,

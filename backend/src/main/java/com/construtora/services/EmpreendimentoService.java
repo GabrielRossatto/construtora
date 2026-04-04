@@ -223,8 +223,8 @@ public class EmpreendimentoService {
             }
         }
 
-        empreendimentoRepository.save(empreendimento);
         empreendimento.setDataReferenciaTabelaVendas(request.dataReferenciaTabelaVendas());
+        empreendimentoRepository.save(empreendimento);
         auditService.log("ADJUST_DEVELOPMENT_VALUES", "EMPREENDIMENTO", empreendimento.getId(), httpRequest.getRemoteAddr());
         return toResponse(empreendimento);
     }

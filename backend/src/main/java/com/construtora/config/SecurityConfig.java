@@ -28,6 +28,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.construtora.repositories.UserAccountRepository;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Stream;
 
 @Configuration
@@ -64,7 +65,7 @@ public class SecurityConfig {
 
     @Bean
     public UserDetailsService userDetailsService() {
-        return username -> userAccountRepository.findByEmail(username)
+        return username -> userAccountRepository.findByEmailIgnoreCase(normalizarEmail(username))
                 .map(user -> User.builder()
                         .username(user.getEmail())
                         .password(user.getSenhaHash())
@@ -79,6 +80,13 @@ public class SecurityConfig {
                         .disabled(!Boolean.TRUE.equals(user.getAtivo()))
                         .build())
                 .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
+    }
+
+    private String normalizarEmail(String email) {
+        if (email == null) {
+            return "";
+        }
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 
     @Bean

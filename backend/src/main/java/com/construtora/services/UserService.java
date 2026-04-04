@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 @Service
@@ -51,7 +52,8 @@ public class UserService {
 
     @Transactional
     public UserDtos.UserResponse create(UserDtos.CreateUserRequest request, HttpServletRequest httpRequest) {
-        if (userAccountRepository.findByEmail(request.email()).isPresent()) {
+        String emailNormalizado = normalizarEmail(request.email());
+        if (userAccountRepository.findByEmailIgnoreCase(emailNormalizado).isPresent()) {
             throw new BadRequestException("Email já cadastrado");
         }
 
@@ -63,7 +65,7 @@ public class UserService {
         UserAccount user = userAccountRepository.save(UserAccount.builder()
                 .empresaId(currentSessionService.empresaId())
                 .nome(request.nome())
-                .email(request.email())
+                .email(emailNormalizado)
                 .telefone(request.telefone())
                 .senhaHash(passwordEncoder.encode(request.senha()))
                 .role(role)
@@ -100,14 +102,15 @@ public class UserService {
         UserAccount user = userAccountRepository.findByIdAndEmpresaId(userId, empresaId)
                 .orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
 
-        userAccountRepository.findByEmail(request.email()).ifPresent(existing -> {
+        String emailNormalizado = normalizarEmail(request.email());
+        userAccountRepository.findByEmailIgnoreCase(emailNormalizado).ifPresent(existing -> {
             if (!existing.getId().equals(user.getId())) {
                 throw new BadRequestException("Email já cadastrado");
             }
         });
 
         user.setNome(request.nome());
-        user.setEmail(request.email());
+        user.setEmail(emailNormalizado);
         user.setTelefone(request.telefone());
 
         if (request.senha() != null && !request.senha().isBlank()) {
@@ -166,5 +169,12 @@ public class UserService {
         }
 
         return new HashSet<>(permissions);
+    }
+
+    private String normalizarEmail(String email) {
+        if (email == null) {
+            return "";
+        }
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 }

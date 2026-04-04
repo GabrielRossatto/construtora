@@ -2,16 +2,22 @@ import { useEffect, useState } from 'react'
 import AppLayout from '../layouts/AppLayout'
 import { useAuth } from '../hooks/useAuth'
 import { hubService } from '../services/hubService'
+import { useToast } from '../hooks/useToast'
 
 export default function MeusDadosPage() {
   const { token, updateUser } = useAuth()
+  const toast = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ nome: '', email: '', telefone: '', senha: '', role: '' })
+  const [empresaNome, setEmpresaNome] = useState('')
 
   useEffect(() => {
-    hubService.meuPerfil(token)
-      .then((data) => {
+    Promise.all([
+      hubService.meuPerfil(token),
+      hubService.minhaEmpresa(token).catch(() => null)
+    ])
+      .then(([data, empresa]) => {
         setForm({
           nome: data.nome || '',
           email: data.email || '',
@@ -19,6 +25,7 @@ export default function MeusDadosPage() {
           senha: '',
           role: data.role || ''
         })
+        setEmpresaNome(empresa?.nome || '')
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -42,9 +49,9 @@ export default function MeusDadosPage() {
         role: updated.role
       })
       setForm((current) => ({ ...current, senha: '', role: updated.role || current.role }))
-      alert('Dados atualizados com sucesso')
+      toast.success('Dados atualizados com sucesso.')
     } catch (error) {
-      alert(error.message || 'Não foi possível atualizar seus dados')
+      toast.error(error.message || 'Não foi possível atualizar seus dados')
     } finally {
       setSaving(false)
     }
@@ -81,6 +88,9 @@ export default function MeusDadosPage() {
               <button disabled={saving} className="bg-hubBlueDeep text-white rounded-xl p-3 text-xl">
                 {saving ? 'Salvando...' : 'Salvar alterações'}
               </button>
+            </div>
+            <div className="md:col-span-2 pt-3 text-sm text-white/70">
+              Empresa em uso: <span className="font-semibold text-white/90">{empresaNome || 'Não identificada'}</span>
             </div>
           </form>
         )}

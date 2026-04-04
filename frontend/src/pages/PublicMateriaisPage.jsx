@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { hubService } from '../services/hubService'
 
 function sanitizeFileName(name) {
@@ -131,6 +131,21 @@ export default function PublicMateriaisPage() {
                 <InfoCard label="Início da obra" value={formatDate(data.dataInicioObra)} />
                 <InfoCard label="Entrega prevista" value={formatDate(data.dataEntrega)} />
               </div>
+
+              <div className="mt-8 flex flex-wrap gap-3">
+                <a
+                  href={hubService.publicMateriaisZip(publicToken)}
+                  className="inline-flex items-center rounded-full bg-hubBlueDeep px-5 py-3 text-sm font-semibold text-white"
+                >
+                  Baixar materiais
+                </a>
+                <Link
+                  to={`/tabela-vendas-publica/${publicToken}`}
+                  className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-900"
+                >
+                  Ver tabela pública
+                </Link>
+              </div>
             </div>
 
             <div className="relative min-h-[320px] lg:min-h-full bg-slate-100">
@@ -160,6 +175,28 @@ export default function PublicMateriaisPage() {
 
         <section className="mt-6 grid grid-cols-1 xl:grid-cols-[1.05fr_0.95fr] gap-6">
           <div className="space-y-6">
+            <Panel title="Próximo passo comercial" eyebrow="Ação">
+              <div className="rounded-[1.5rem] border border-slate-200 bg-white/90 p-6">
+                <p className="text-lg leading-8 text-slate-700">
+                  Use esta apresentação para qualificar o cliente, compartilhar os diferenciais do projeto e avançar para a tabela de vendas no momento certo.
+                </p>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <Link
+                    to={`/tabela-vendas-publica/${publicToken}`}
+                    className="inline-flex items-center rounded-full bg-hubBlueDeep px-5 py-3 text-sm font-semibold text-white"
+                  >
+                    Abrir tabela de vendas
+                  </Link>
+                  <a
+                    href={hubService.publicMateriaisZip(publicToken)}
+                    className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-900"
+                  >
+                    Baixar kit completo
+                  </a>
+                </div>
+              </div>
+            </Panel>
+
             <Panel title="Tipos disponíveis" eyebrow="Configurações">
               {tipos.length === 0 ? (
                 <div className="rounded-[1.5rem] border border-slate-200 bg-white/90 p-6 text-slate-500">

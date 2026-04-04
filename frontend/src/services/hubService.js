@@ -97,6 +97,21 @@ export const hubService = {
   atualizarMeuPerfil(token, payload) {
     return api.request('/api/users/me', { method: 'PUT', token, body: payload })
   },
+  perguntarIa(token, payload) {
+    return api.request('/api/ia/perguntar', { method: 'POST', token, body: payload })
+  },
+  interacoesIa(token) {
+    return api.request('/api/ia/interacoes', { token })
+  },
+  internalTabelaVendasEmpresas(token) {
+    return api.request('/api/internal/tabela-vendas/empresas', { token })
+  },
+  internalTabelaVendasConfig(token, empresaId) {
+    return api.request(`/api/internal/tabela-vendas/empresas/${empresaId}`, { token })
+  },
+  salvarInternalTabelaVendasConfig(token, empresaId, payload) {
+    return api.request(`/api/internal/tabela-vendas/empresas/${empresaId}`, { method: 'PUT', token, body: payload })
+  },
   publicMateriais(publicToken) {
     return api.request(`/api/public/empreendimentos/${publicToken}/materiais`)
   },

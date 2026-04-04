@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import AppLayout from '../layouts/AppLayout'
 import { useAuth } from '../hooks/useAuth'
 import { hubService } from '../services/hubService'
+import { useToast } from '../hooks/useToast'
 import semImagemEmpreendimento from '../assets/sem-imagem-empreendimento.svg'
 
 const MAX_MULTIPART_SIZE_BYTES = 20 * 1024 * 1024
@@ -272,6 +273,7 @@ async function compressImage(file) {
 
 export default function EmpreendimentosPage() {
   const { token, hasPermission } = useAuth()
+  const toast = useToast()
   const canManageDevelopments = hasPermission('CREATE_DEVELOPMENT')
   const [items, setItems] = useState([])
   const carouselRef = useRef(null)
@@ -284,6 +286,7 @@ export default function EmpreendimentosPage() {
   const [editFoto, setEditFoto] = useState(null)
   const [savingEdit, setSavingEdit] = useState(false)
   const [activeEditTab, setActiveEditTab] = useState('dados')
+  const [expandedTipoIds, setExpandedTipoIds] = useState([])
   const [empreendimentoMateriais, setEmpreendimentoMateriais] = useState([])
   const [editingMaterialId, setEditingMaterialId] = useState(null)
   const [editingMaterialPayload, setEditingMaterialPayload] = useState(null)
@@ -334,7 +337,9 @@ export default function EmpreendimentosPage() {
 
   async function openEdit(item) {
     setEditingItem(item)
-    setEditPayload(createEditPayload(item))
+    const nextPayload = createEditPayload(item)
+    setEditPayload(nextPayload)
+    setExpandedTipoIds(nextPayload.tipos[0]?.id ? [nextPayload.tipos[0].id] : [])
     setEditFoto(null)
     setActiveEditTab('dados')
     setEditingMaterialId(null)
@@ -354,6 +359,7 @@ export default function EmpreendimentosPage() {
     if (savingEdit) return
     setEditingItem(null)
     setEditPayload(null)
+    setExpandedTipoIds([])
     setEditFoto(null)
     setEmpreendimentoMateriais([])
     setEditingMaterialId(null)
@@ -387,7 +393,7 @@ export default function EmpreendimentosPage() {
       setItems((current) => current.filter((item) => item.id !== itemToDelete.id))
       setItemToDelete(null)
     } catch (error) {
-      alert(error.message || 'Não foi possível excluir o empreendimento')
+      toast.error(error.message || 'Não foi possível excluir o empreendimento')
     } finally {
       setIsDeleting(false)
     }
@@ -401,10 +407,12 @@ export default function EmpreendimentosPage() {
   }
 
   function addTipo() {
+    const novoTipo = createTipo((editPayload?.tipos?.length || 0) + 1)
     setEditPayload((current) => ({
       ...current,
-      tipos: [...current.tipos, createTipo(current.tipos.length + 1)]
+      tipos: [...current.tipos, novoTipo]
     }))
+    setExpandedTipoIds((current) => [...current, novoTipo.id])
   }
 
   function updateUnidade(tipoId, unidadeId, field, value) {
@@ -451,6 +459,15 @@ export default function EmpreendimentosPage() {
       ...current,
       tipos: current.tipos.length > 1 ? current.tipos.filter((tipo) => tipo.id !== id) : current.tipos
     }))
+    setExpandedTipoIds((current) => current.filter((tipoId) => tipoId !== id))
+  }
+
+  function toggleTipoExpansion(tipoId) {
+    setExpandedTipoIds((current) => (
+      current.includes(tipoId)
+        ? current.filter((id) => id !== tipoId)
+        : [...current, tipoId]
+    ))
   }
 
   async function preencherEnderecoPorCep(rawCep) {
@@ -488,14 +505,14 @@ export default function EmpreendimentosPage() {
     try {
       const compressed = await compressImage(selectedFile)
       if (compressed.size > MAX_MULTIPART_SIZE_BYTES) {
-        alert('A foto de perfil excede o limite atual de 20 MB.')
+        toast.error('A foto de perfil excede o limite atual de 20 MB.')
         e.target.value = ''
         setEditFoto(null)
         return
       }
       setEditFoto(compressed)
     } catch (error) {
-      alert(error.message || 'Não foi possível processar a foto de perfil')
+      toast.error(error.message || 'Não foi possível processar a foto de perfil')
       e.target.value = ''
       setEditFoto(null)
     }
@@ -510,9 +527,9 @@ export default function EmpreendimentosPage() {
       const updated = await hubService.atualizarEmpreendimento(token, editingItem.id, sanitizedPayload, editFoto)
       setItems((current) => current.map((item) => (item.id === editingItem.id ? updated : item)))
       closeEdit()
-      alert('Empreendimento atualizado com sucesso')
+      toast.success('Empreendimento atualizado com sucesso.')
     } catch (error) {
-      alert(error.message || 'Não foi possível atualizar o empreendimento')
+      toast.error(error.message || 'Não foi possível atualizar o empreendimento')
     } finally {
       setSavingEdit(false)
     }
@@ -533,9 +550,9 @@ export default function EmpreendimentosPage() {
       setEmpreendimentoMateriais((current) => current.map((material) => (material.id === updated.id ? updated : material)))
       setEditingMaterialId(null)
       setEditingMaterialPayload(null)
-      alert('Material atualizado com sucesso')
+      toast.success('Material atualizado com sucesso.')
     } catch (error) {
-      alert(error.message || 'Não foi possível atualizar o material')
+      toast.error(error.message || 'Não foi possível atualizar o material')
     } finally {
       setSavingMaterialEdit(false)
     }
@@ -553,7 +570,7 @@ export default function EmpreendimentosPage() {
         setEditingMaterialPayload(null)
       }
     } catch (error) {
-      alert(error.message || 'Não foi possível excluir o material')
+      toast.error(error.message || 'Não foi possível excluir o material')
     } finally {
       setDeletingMaterialId(null)
     }
@@ -565,7 +582,7 @@ export default function EmpreendimentosPage() {
 
     const valor = Number(pricingPayload.valor)
     if (!Number.isFinite(valor) || valor <= 0) {
-      alert('Informe um valor de reajuste maior que zero.')
+      toast.info('Informe um valor de reajuste maior que zero.')
       return
     }
 
@@ -578,9 +595,9 @@ export default function EmpreendimentosPage() {
       })
       setItems((current) => current.map((item) => (item.id === pricingItem.id ? updated : item)))
       closePricing()
-      alert('Valores do empreendimento reajustados com sucesso')
+      toast.success('Valores do empreendimento reajustados com sucesso.')
     } catch (error) {
-      alert(error.message || 'Não foi possível reajustar os valores do empreendimento')
+      toast.error(error.message || 'Não foi possível reajustar os valores do empreendimento')
     } finally {
       setSavingPricing(false)
     }
@@ -795,63 +812,104 @@ export default function EmpreendimentosPage() {
                   <div className="space-y-4">
                     {editPayload.tipos.map((tipo, index) => (
                       <div key={tipo.id} className="rounded-2xl bg-white/10 border border-white/15 p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <p className="text-lg font-semibold">{`Tipo ${index + 1}`}</p>
-                          {editPayload.tipos.length > 1 && (
-                            <button type="button" onClick={() => removeTipo(tipo.id)} className="text-sm font-semibold text-red-600">Remover</button>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <Field label="Tamanho da área">
-                            <div className="relative">
-                              <input type="number" min="0" step="0.01" className="input-hub w-full rounded-2xl p-3 pr-14" value={tipo.areaMetragem} onChange={(e) => updateTipo(tipo.id, 'areaMetragem', e.target.value)} />
-                              <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-white/65">m²</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleTipoExpansion(tipo.id)}
+                          className="w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-4 text-left transition hover:bg-white/10"
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <p className="text-lg font-semibold">{`Tipo ${index + 1}`}</p>
+                              <p className="mt-1 text-sm text-white/60">
+                                Clique para {expandedTipoIds.includes(tipo.id) ? 'ocultar' : 'ver'} os dados completos
+                              </p>
                             </div>
-                          </Field>
-                          <Field label="Qtd de suítes">
-                            <input type="number" min="0" className="input-hub w-full rounded-2xl p-3" value={tipo.quantidadeSuites} onChange={(e) => updateTipo(tipo.id, 'quantidadeSuites', e.target.value)} />
-                          </Field>
-                          <Field label="Qtd de vagas">
-                            <input type="number" min="0" className="input-hub w-full rounded-2xl p-3" value={tipo.quantidadeVagas} onChange={(e) => updateTipo(tipo.id, 'quantidadeVagas', e.target.value)} />
-                          </Field>
-                        </div>
-                        <div className="mt-4 rounded-2xl border border-white/15 bg-white/8 p-4">
-                          <div className="mb-3">
-                            <div className="hidden md:grid md:grid-cols-[210px_210px_210px] gap-4 px-1 pt-2">
-                              <p className="text-[0.98rem] font-semibold text-white/72">Pavimento</p>
-                              <p className="text-[0.98rem] font-semibold text-white/72">Situação</p>
-                              <p className="text-[0.98rem] font-semibold text-white/72">Valor</p>
+                            <span className="text-2xl leading-none text-white/70">
+                              {expandedTipoIds.includes(tipo.id) ? '−' : '+'}
+                            </span>
+                          </div>
+                          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+                            <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
+                              <p className="text-xs uppercase tracking-[0.18em] text-white/45">Tipo</p>
+                              <p className="mt-1 text-base font-semibold text-white">{index + 1}</p>
+                            </div>
+                            <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
+                              <p className="text-xs uppercase tracking-[0.18em] text-white/45">Area</p>
+                              <p className="mt-1 text-base font-semibold text-white">
+                                {tipo.areaMetragem || '-'}{tipo.areaMetragem ? ' m²' : ''}
+                              </p>
+                            </div>
+                            <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
+                              <p className="text-xs uppercase tracking-[0.18em] text-white/45">Suites</p>
+                              <p className="mt-1 text-base font-semibold text-white">{tipo.quantidadeSuites || '-'}</p>
+                            </div>
+                            <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
+                              <p className="text-xs uppercase tracking-[0.18em] text-white/45">Vagas</p>
+                              <p className="mt-1 text-base font-semibold text-white">{tipo.quantidadeVagas || '-'}</p>
                             </div>
                           </div>
-                          <div className="space-y-3">
-                            {tipo.unidades.map((unidade) => (
-                              <div key={unidade.id} className="grid grid-cols-1 md:grid-cols-[210px_210px_210px_auto] gap-4 items-end">
-                                <Field label="Pavimento" hideLabelOnDesktop>
-                                  <input className="input-hub w-full rounded-2xl !border !border-white/25 !bg-white/10 p-3" value={unidade.codigoUnidade} onChange={(e) => updateUnidade(tipo.id, unidade.id, 'codigoUnidade', e.target.value)} />
-                                </Field>
-                                <Field label="Situação" hideLabelOnDesktop>
-                                  <select className="input-hub w-full rounded-2xl border border-white/25 p-3" value={unidade.tipoValor} onChange={(e) => updateUnidade(tipo.id, unidade.id, 'tipoValor', e.target.value)}>
-                                    <option value="VALOR">Disponivel</option>
-                                    <option value="RESERVADO">RESERVADO</option>
-                                  </select>
-                                </Field>
-                                {unidade.tipoValor === 'VALOR' ? (
-                                  <Field label="Valor" hideLabelOnDesktop>
-                                    <input className="input-hub w-full rounded-2xl !border !border-white/25 !bg-white/10 p-3" inputMode="numeric" value={formatCurrencyInput(unidade.valor)} onChange={(e) => updateUnidade(tipo.id, unidade.id, 'valor', parseCurrencyInput(e.target.value))} />
-                                  </Field>
-                                ) : (
-                                  <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-white/70">
-                                    Este pavimento aparecerá como RESERVADO.
-                                  </div>
-                                )}
-                                <button type="button" onClick={() => removeUnidade(tipo.id, unidade.id)} className="h-[42px] rounded-xl bg-white/12 border border-white/15 px-4 text-sm font-semibold text-red-300 whitespace-nowrap self-end justify-self-end">Remover</button>
+                        </button>
+
+                        {expandedTipoIds.includes(tipo.id) && (
+                          <div className="mt-4">
+                            <div className="mb-3 flex items-center justify-end">
+                              {editPayload.tipos.length > 1 && (
+                                <button type="button" onClick={() => removeTipo(tipo.id)} className="text-sm font-semibold text-red-300">Remover tipo</button>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <Field label="Tamanho da área">
+                                <div className="relative">
+                                  <input type="number" min="0" step="0.01" className="input-hub w-full rounded-2xl p-3 pr-14" value={tipo.areaMetragem} onChange={(e) => updateTipo(tipo.id, 'areaMetragem', e.target.value)} />
+                                  <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-white/65">m²</span>
+                                </div>
+                              </Field>
+                              <Field label="Qtd de suítes">
+                                <input type="number" min="0" className="input-hub w-full rounded-2xl p-3" value={tipo.quantidadeSuites} onChange={(e) => updateTipo(tipo.id, 'quantidadeSuites', e.target.value)} />
+                              </Field>
+                              <Field label="Qtd de vagas">
+                                <input type="number" min="0" className="input-hub w-full rounded-2xl p-3" value={tipo.quantidadeVagas} onChange={(e) => updateTipo(tipo.id, 'quantidadeVagas', e.target.value)} />
+                              </Field>
+                            </div>
+                            <div className="mt-4 rounded-2xl border border-white/15 bg-white/8 p-4">
+                              <div className="mb-3">
+                                <div className="hidden md:grid md:grid-cols-[210px_210px_210px] gap-4 px-1 pt-2">
+                                  <p className="text-[0.98rem] font-semibold text-white/72">Pavimento</p>
+                                  <p className="text-[0.98rem] font-semibold text-white/72">Situação</p>
+                                  <p className="text-[0.98rem] font-semibold text-white/72">Valor</p>
+                                </div>
                               </div>
-                            ))}
+                              <div className="space-y-3">
+                                {tipo.unidades.map((unidade) => (
+                                  <div key={unidade.id} className="grid grid-cols-1 md:grid-cols-[210px_210px_210px_auto] gap-4 items-end">
+                                    <Field label="Pavimento" hideLabelOnDesktop>
+                                      <input className="input-hub w-full rounded-2xl !border !border-white/25 !bg-white/10 p-3" value={unidade.codigoUnidade} onChange={(e) => updateUnidade(tipo.id, unidade.id, 'codigoUnidade', e.target.value)} />
+                                    </Field>
+                                    <Field label="Situação" hideLabelOnDesktop>
+                                      <select className="input-hub w-full rounded-2xl border border-white/25 p-3" value={unidade.tipoValor} onChange={(e) => updateUnidade(tipo.id, unidade.id, 'tipoValor', e.target.value)}>
+                                        <option value="VALOR">Disponivel</option>
+                                        <option value="RESERVADO">RESERVADO</option>
+                                      </select>
+                                    </Field>
+                                    {unidade.tipoValor === 'VALOR' ? (
+                                      <Field label="Valor" hideLabelOnDesktop>
+                                        <input className="input-hub w-full rounded-2xl !border !border-white/25 !bg-white/10 p-3" inputMode="numeric" value={formatCurrencyInput(unidade.valor)} onChange={(e) => updateUnidade(tipo.id, unidade.id, 'valor', parseCurrencyInput(e.target.value))} />
+                                      </Field>
+                                    ) : (
+                                      <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-white/70">
+                                        Este pavimento aparecerá como RESERVADO.
+                                      </div>
+                                    )}
+                                    <button type="button" onClick={() => removeUnidade(tipo.id, unidade.id)} className="h-[42px] rounded-xl bg-white/12 border border-white/15 px-4 text-sm font-semibold text-red-300 whitespace-nowrap self-end justify-self-end">Remover</button>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="mt-4 flex justify-end">
+                                <button type="button" onClick={() => addUnidade(tipo.id)} className="bg-hubBlueDeep text-white px-3 py-2 rounded-xl text-sm font-semibold">Adicionar pavimento</button>
+                              </div>
+                            </div>
                           </div>
-                          <div className="mt-4 flex justify-end">
-                            <button type="button" onClick={() => addUnidade(tipo.id)} className="bg-hubBlueDeep text-white px-3 py-2 rounded-xl text-sm font-semibold">Adicionar pavimento</button>
-                          </div>
-                        </div>
+                        )}
                       </div>
                     ))}
                   </div>

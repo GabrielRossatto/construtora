@@ -1,3 +1,9 @@
+DELETE up
+FROM user_permission up
+JOIN user_account ua ON ua.id = up.user_id
+JOIN role r ON r.id = ua.role_id
+WHERE r.name = 'CORRETOR';
+
 DELETE rp
 FROM role_permission rp
 JOIN role r ON r.id = rp.role_id

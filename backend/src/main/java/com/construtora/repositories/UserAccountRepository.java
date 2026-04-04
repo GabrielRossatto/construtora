@@ -7,6 +7,7 @@ import java.util.Optional;
 
 public interface UserAccountRepository extends JpaRepository<UserAccount, Long> {
     Optional<UserAccount> findByEmail(String email);
+    Optional<UserAccount> findByEmailIgnoreCase(String email);
     Optional<UserAccount> findByIdAndEmpresaId(Long id, Long empresaId);
     List<UserAccount> findByEmpresaIdOrderByIdDesc(Long empresaId);
     long countByEmpresaId(Long empresaId);

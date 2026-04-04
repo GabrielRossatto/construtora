@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Stream;
 
 @Service
@@ -32,15 +33,16 @@ public class AuthService {
     }
 
     public AuthDtos.LoginResponse login(AuthDtos.LoginRequest request) {
+        String emailNormalizado = normalizarEmail(request.email());
         try {
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.email(), request.senha())
+                    new UsernamePasswordAuthenticationToken(emailNormalizado, request.senha())
             );
         } catch (AuthenticationException ex) {
             throw new ForbiddenException("Credenciais inválidas");
         }
 
-        UserAccount user = userAccountRepository.findByEmail(request.email())
+        UserAccount user = userAccountRepository.findByEmailIgnoreCase(emailNormalizado)
                 .orElseThrow(() -> new ForbiddenException("Credenciais inválidas"));
 
         if (!Boolean.TRUE.equals(user.getAtivo())) {
@@ -79,5 +81,12 @@ public class AuthService {
                         authorities.stream().map(SimpleGrantedAuthority::getAuthority).toList()
                 )
         );
+    }
+
+    private String normalizarEmail(String email) {
+        if (email == null) {
+            return "";
+        }
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 }

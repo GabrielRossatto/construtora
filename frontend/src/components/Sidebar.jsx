@@ -4,20 +4,21 @@ import { useAuth } from '../hooks/useAuth'
 import { hubService } from '../services/hubService'
 
 const CREATE_PERMISSIONS = ['CREATE_DEVELOPMENT', 'CREATE_USER', 'CREATE_MATERIAL']
-
 export default function Sidebar({ user }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { logout, hasPermission, token } = useAuth()
   const [iconeUrl, setIconeUrl] = useState(null)
+  const [planoEmpresa, setPlanoEmpresa] = useState(null)
   const canAccessCadastros = CREATE_PERMISSIONS.some(hasPermission)
   const canAccessUsuarios = hasPermission('VIEW_USER')
+  const canAccessIa = planoEmpresa !== 'BASIC'
   const menu = [
     { label: 'Dashboard', to: '/dashboard' },
     { label: 'Institucional', to: '/institucional' },
     { label: 'Empreendimentos', to: '/empreendimentos' },
     ...(canAccessCadastros ? [{ label: 'Cadastros', to: '/cadastros' }] : []),
-    { label: 'IA HUB', to: '/ia-hub' },
+    ...(canAccessIa ? [{ label: 'IA HUB', to: '/ia-hub' }] : []),
     ...(canAccessUsuarios ? [{ label: 'Usuários', to: '/usuarios' }] : []),
     { label: 'Meus dados', to: '/meus-dados' }
   ]
@@ -29,12 +30,18 @@ export default function Sidebar({ user }) {
 
   useEffect(() => {
     hubService.minhaEmpresa(token)
-      .then((data) => setIconeUrl(data?.iconeUrl || null))
-      .catch(() => setIconeUrl(null))
+      .then((data) => {
+        setIconeUrl(data?.iconeUrl || null)
+        setPlanoEmpresa(data?.plano || null)
+      })
+      .catch(() => {
+        setIconeUrl(null)
+        setPlanoEmpresa(null)
+      })
   }, [token])
 
   return (
-    <aside className="sidebar-gradient w-72 min-h-screen text-white relative">
+    <aside className="sidebar-gradient sticky top-0 h-screen w-72 shrink-0 overflow-y-auto text-white relative">
       <div className="p-5">
         <div className="rounded-2xl px-0 py-4">
           <div className="mx-auto h-56 w-56 overflow-hidden rounded-full">

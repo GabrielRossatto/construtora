@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import AppLayout from '../layouts/AppLayout'
 import { useAuth } from '../hooks/useAuth'
 import { hubService } from '../services/hubService'
+import { useToast } from '../hooks/useToast'
 
 const EMPREENDIMENTO_NOME_MAX_CHARS = 55
 const MAX_MULTIPART_SIZE_BYTES = 20 * 1024 * 1024
@@ -291,6 +292,7 @@ async function compressImage(file) {
 
 export default function CadastrosPage() {
   const { token, user, hasPermission } = useAuth()
+  const toast = useToast()
   const isAdminMaster = user?.role === 'ADMIN_MASTER'
   const canCreateMaterial = hasPermission('CREATE_MATERIAL')
   const canCreateUser = hasPermission('CREATE_USER')
@@ -323,13 +325,13 @@ export default function CadastrosPage() {
   }
 
   useEffect(() => {
-    carregarEmpreendimentos()
-  }, [token])
-
-  useEffect(() => {
-    hubService.minhaEmpresa(token)
-      .then((data) => setEmpresa(data || null))
-      .catch(() => {})
+    Promise.allSettled([
+      hubService.empreendimentos(token),
+      hubService.minhaEmpresa(token)
+    ]).then(([empreendimentosResult, empresaResult]) => {
+      setEmpreendimentos(empreendimentosResult.status === 'fulfilled' ? (empreendimentosResult.value || []) : [])
+      setEmpresa(empresaResult.status === 'fulfilled' ? (empresaResult.value || null) : null)
+    })
   }, [token])
 
   useEffect(() => {
@@ -369,7 +371,7 @@ export default function CadastrosPage() {
             descricao: null
           }, currentFile)
         }
-        alert('Pasta enviada com sucesso')
+        toast.success('Pasta enviada com sucesso.')
       } else {
         await hubService.criarMaterial(token, {
           ...payload,
@@ -378,7 +380,7 @@ export default function CadastrosPage() {
           caminhoRelativo: null,
           empreendimentoId: payload.empreendimentoId ? Number(payload.empreendimentoId) : null
         }, file)
-        alert('Material criado com sucesso')
+        toast.success('Material criado com sucesso.')
       }
 
       setPayload({ titulo: '', empreendimentoId: '' })
@@ -388,7 +390,7 @@ export default function CadastrosPage() {
       if (fileInputRef.current) fileInputRef.current.value = ''
       if (folderInputRef.current) folderInputRef.current.value = ''
     } catch (error) {
-      alert(error.message || 'Não foi possível criar o material')
+      toast.error(error.message || 'Não foi possível criar o material')
     } finally {
       setSalvandoMaterial(false)
     }
@@ -400,9 +402,9 @@ export default function CadastrosPage() {
       const payloadToSend = isAdminMaster ? userPayload : { ...userPayload, permissionCodes: [] }
       await hubService.criarUsuario(token, payloadToSend)
       setUserPayload({ nome: '', email: '', telefone: '', senha: '', role: 'TIME_COMERCIAL', permissionCodes: [] })
-      alert('Usuário criado com sucesso')
+      toast.success('Usuário criado com sucesso.')
     } catch (error) {
-      alert(error.message || 'Não foi possível criar o usuário')
+      toast.error(error.message || 'Não foi possível criar o usuário')
     }
   }
 
@@ -411,7 +413,7 @@ export default function CadastrosPage() {
     if (salvandoEmpreendimento) return
 
     if (fotoEmpreendimento && fotoEmpreendimento.size > MAX_MULTIPART_SIZE_BYTES) {
-      alert('A foto de perfil excede o limite atual de 20 MB.')
+      toast.error('A foto de perfil excede o limite atual de 20 MB.')
       return
     }
 
@@ -425,9 +427,9 @@ export default function CadastrosPage() {
         fotoEmpreendimentoInputRef.current.value = ''
       }
       await carregarEmpreendimentos()
-      alert('Empreendimento criado com sucesso')
+      toast.success('Empreendimento criado com sucesso.')
     } catch (error) {
-      alert(error.message || 'Não foi possível criar o empreendimento')
+      toast.error(error.message || 'Não foi possível criar o empreendimento')
     } finally {
       setSalvandoEmpreendimento(false)
     }
@@ -440,7 +442,7 @@ export default function CadastrosPage() {
       setSalvandoInstitucional(true)
       const validDrafts = institucionalDrafts.filter((item) => item.titulo.trim() || item.arquivo || item.link.trim())
       if (validDrafts.length === 0) {
-        alert('Adicione ao menos um arquivo institucional antes de salvar.')
+        toast.info('Adicione ao menos um arquivo institucional antes de salvar.')
         return
       }
 
@@ -458,9 +460,9 @@ export default function CadastrosPage() {
       }
 
       setInstitucionalDrafts([createInstitucionalDraft(1)])
-      alert('Institucional salvo com sucesso')
+      toast.success('Institucional salvo com sucesso.')
     } catch (error) {
-      alert(error.message || 'Não foi possível salvar o institucional')
+      toast.error(error.message || 'Não foi possível salvar o institucional')
     } finally {
       setSalvandoInstitucional(false)
     }
@@ -474,9 +476,9 @@ export default function CadastrosPage() {
       const updated = await hubService.atualizarIconeEmpresa(token, iconeEmpresa)
       setEmpresa(updated)
       setIconeEmpresa(null)
-      alert('Ícone salvo com sucesso')
+      toast.success('Ícone salvo com sucesso.')
     } catch (error) {
-      alert(error.message || 'Não foi possível salvar o ícone')
+      toast.error(error.message || 'Não foi possível salvar o ícone')
     } finally {
       setSalvandoIconeEmpresa(false)
     }
@@ -596,14 +598,14 @@ export default function CadastrosPage() {
     try {
       const compressedFile = await compressImage(selectedFile)
       if (compressedFile.size > MAX_MULTIPART_SIZE_BYTES) {
-        alert('A foto de perfil continua acima do limite de 20 MB mesmo após compressão.')
+        toast.error('A foto de perfil continua acima do limite de 20 MB mesmo após compressão.')
         e.target.value = ''
         setFotoEmpreendimento(null)
         return
       }
       setFotoEmpreendimento(compressedFile)
     } catch (error) {
-      alert(error.message || 'Não foi possível processar a foto de perfil')
+      toast.error(error.message || 'Não foi possível processar a foto de perfil')
       e.target.value = ''
       setFotoEmpreendimento(null)
     }
@@ -622,7 +624,7 @@ export default function CadastrosPage() {
         : selectedFile
 
       if (fileToUpload.size > MATERIAL_MAX_FILE_SIZE_BYTES) {
-        alert('O arquivo do material excede o limite atual de 100 MB.')
+        toast.error('O arquivo do material excede o limite atual de 100 MB.')
         e.target.value = ''
         setFile(null)
         return
@@ -633,7 +635,7 @@ export default function CadastrosPage() {
       setMaterialUploadMode('arquivo')
       if (folderInputRef.current) folderInputRef.current.value = ''
     } catch (error) {
-      alert(error.message || 'Não foi possível processar o arquivo do material')
+      toast.error(error.message || 'Não foi possível processar o arquivo do material')
       e.target.value = ''
       setFile(null)
     }
@@ -669,7 +671,7 @@ export default function CadastrosPage() {
       setMaterialUploadMode('pasta')
       if (fileInputRef.current) fileInputRef.current.value = ''
     } catch (error) {
-      alert(error.message || 'Não foi possível processar a pasta selecionada')
+      toast.error(error.message || 'Não foi possível processar a pasta selecionada')
       e.target.value = ''
       setFolderFiles([])
     }
@@ -1249,7 +1251,7 @@ function AccordionPanel({ isOpen, children }) {
       }`}
     >
       <div className="overflow-hidden">
-        {children}
+        {isOpen ? children : null}
       </div>
     </div>
   )

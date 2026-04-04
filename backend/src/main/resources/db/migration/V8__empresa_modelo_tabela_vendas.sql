@@ -1,0 +1,2 @@
+ALTER TABLE empresa
+    ADD COLUMN modelo_tabela_vendas VARCHAR(30) NOT NULL DEFAULT 'CLASSICO' AFTER plano;

@@ -2,10 +2,12 @@ package com.construtora.services;
 
 import com.construtora.dtos.EmpresaDtos;
 import com.construtora.entities.Empresa;
+import com.construtora.entities.PlanoEmpresa;
 import com.construtora.entities.Role;
 import com.construtora.entities.RoleName;
 import com.construtora.entities.UserAccount;
 import com.construtora.exceptions.BadRequestException;
+import com.construtora.exceptions.ForbiddenException;
 import com.construtora.repositories.EmpresaRepository;
 import com.construtora.repositories.RoleRepository;
 import com.construtora.repositories.UserAccountRepository;
@@ -13,6 +15,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Locale;
 
 @Service
 public class EmpresaService {
@@ -41,12 +45,13 @@ public class EmpresaService {
     @Transactional
     public EmpresaDtos.EmpresaResponse createEmpresa(EmpresaDtos.CreateEmpresaRequest request) {
         validatePublicPlan(request.plano());
+        String adminEmailNormalizado = normalizarEmail(request.adminEmail());
 
         empresaRepository.findByCnpj(request.cnpj()).ifPresent(e -> {
             throw new BadRequestException("CNPJ já cadastrado");
         });
 
-        if (userAccountRepository.findByEmail(request.adminEmail()).isPresent()) {
+        if (userAccountRepository.findByEmailIgnoreCase(adminEmailNormalizado).isPresent()) {
             throw new BadRequestException("Email do administrador já cadastrado");
         }
 
@@ -55,7 +60,7 @@ public class EmpresaService {
                 request.cnpj(),
                 request.plano(),
                 request.adminNome(),
-                request.adminEmail(),
+                adminEmailNormalizado,
                 request.adminTelefone(),
                 request.adminSenha()
         );
@@ -123,6 +128,16 @@ public class EmpresaService {
         return toResponse(empresaRepository.save(empresa));
     }
 
+    public void ensureIaEnabledForCurrentCompany() {
+        Long empresaId = currentSessionService.empresaId();
+        Empresa empresa = empresaRepository.findById(empresaId)
+                .orElseThrow(() -> new BadRequestException("Empresa não encontrada"));
+
+        if (empresa.getPlano() == PlanoEmpresa.BASIC) {
+            throw new ForbiddenException("Seu plano atual nao inclui acesso a IA. Faça upgrade para o plano Premium.");
+        }
+    }
+
     private EmpresaDtos.EmpresaResponse toResponse(Empresa empresa) {
         return new EmpresaDtos.EmpresaResponse(
                 empresa.getId(),
@@ -133,5 +148,12 @@ public class EmpresaService {
                 empresa.getIconeNome(),
                 empresa.getDataCriacao()
         );
+    }
+
+    private String normalizarEmail(String email) {
+        if (email == null) {
+            return "";
+        }
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 }

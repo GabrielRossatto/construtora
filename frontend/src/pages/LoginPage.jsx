@@ -17,7 +17,7 @@ export default function LoginPage() {
     setErro('')
     setLoading(true)
     try {
-      const result = await authService.login({ email, senha })
+      const result = await authService.login({ email: email.trim().toLowerCase(), senha })
       login({ token: result.token, user: result.user, expiresAt: result.expiresAt })
       navigate('/dashboard')
     } catch (err) {
@@ -59,13 +59,6 @@ export default function LoginPage() {
           <div className="flex flex-wrap items-center gap-3">
             <button disabled={loading} className="rounded-xl bg-hubBlueDeep px-5 py-2 text-2xl font-semibold">
               {loading ? 'ENTRANDO...' : 'ENTRAR'}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/cadastro-empresa')}
-              className="rounded-xl border border-white/20 px-5 py-2 text-lg font-medium text-white/85"
-            >
-              Cadastrar empresa
             </button>
           </div>
         </form>

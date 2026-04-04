@@ -1,6 +1,7 @@
 package com.construtora.dtos;
 
 import com.construtora.entities.MaterialTipoArquivo;
+import com.construtora.entities.ModeloTabelaTema;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -50,10 +51,27 @@ public class PublicDtos {
             Instant dataUpload
     ) {}
 
+    public record PublicTabelaConfig(
+            ModeloTabelaTema tema,
+            String corPrimaria,
+            String corSecundaria,
+            String corTexto,
+            String corFundo,
+            String textoRodape,
+            Boolean exibirEndereco,
+            Boolean exibirIcone,
+            Boolean pagamentoEmDestaque,
+            Integer larguraColunaLateralPx,
+            Integer alturaImagemPercentual,
+            Integer divisaoInferiorPercentual
+    ) {}
+
     public record PublicEmpreendimentoMateriaisResponse(
             Long empreendimentoId,
             String empreendimentoNome,
             String fotoPerfilUrl,
+            String iconeUrl,
+            PublicTabelaConfig tabelaConfig,
             String descricao,
             PublicLocalizacao localizacao,
             List<PublicTipoItem> tipos,

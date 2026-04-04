@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import AppLayout from '../layouts/AppLayout'
 import { useAuth } from '../hooks/useAuth'
 import { hubService } from '../services/hubService'
+import { useToast } from '../hooks/useToast'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
 export default function InstitucionalPage() {
   const { token } = useAuth()
+  const toast = useToast()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingItem, setEditingItem] = useState(null)
@@ -68,9 +70,9 @@ export default function InstitucionalPage() {
       )
       setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)))
       setEditingItem(null)
-      alert('Item institucional atualizado com sucesso')
+      toast.success('Item institucional atualizado com sucesso.')
     } catch (error) {
-      alert(error.message || 'Não foi possível atualizar o item institucional')
+      toast.error(error.message || 'Não foi possível atualizar o item institucional')
     } finally {
       setSavingEdit(false)
     }
@@ -84,7 +86,7 @@ export default function InstitucionalPage() {
       await hubService.excluirInstitucionalArquivo(token, item.id)
       setItems((current) => current.filter((entry) => entry.id !== item.id))
     } catch (error) {
-      alert(error.message || 'Não foi possível excluir o item institucional')
+      toast.error(error.message || 'Não foi possível excluir o item institucional')
     } finally {
       setDeletingId(null)
     }
@@ -150,7 +152,7 @@ export default function InstitucionalPage() {
                       </a>
                       <button
                         type="button"
-                        onClick={() => baixarArquivo(item).catch((error) => alert(error.message || 'Não foi possível baixar o arquivo'))}
+                        onClick={() => baixarArquivo(item).catch((error) => toast.error(error.message || 'Não foi possível baixar o arquivo'))}
                         className="inline-flex items-center rounded-full border border-white/15 bg-black/25 px-5 py-3 text-sm font-semibold text-white shadow-none"
                       >
                         Baixar arquivo

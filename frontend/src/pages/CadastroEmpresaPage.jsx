@@ -4,8 +4,16 @@ import { hubService } from '../services/hubService'
 import logoCommercialHub from '../assets/logo-commercial-hub.jpeg'
 
 const PLAN_OPTIONS = [
-  { value: 'BASIC', label: 'Basic' },
-  { value: 'PRO', label: 'Pro' }
+  {
+    value: 'BASIC',
+    label: 'Plano Basico',
+    description: 'Sem o uso da IA'
+  },
+  {
+    value: 'PRO',
+    label: 'Plano Premium',
+    description: 'Com o uso da IA'
+  }
 ]
 
 function onlyDigits(value) {
@@ -120,7 +128,11 @@ export default function CadastroEmpresaPage() {
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
+              <p className="mt-2 text-sm text-white/70">
+                {PLAN_OPTIONS.find((option) => option.value === form.plano)?.description}
+              </p>
             </label>
+
             <label className="block md:col-span-2">
               <span className="mb-2 block text-xl font-semibold">Nome do administrador</span>
               <input

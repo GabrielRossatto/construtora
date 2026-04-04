@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { hubService } from '../services/hubService'
 
 function formatCurrency(value) {
@@ -41,6 +41,14 @@ function formatDate(value) {
   return formatted.charAt(0).toUpperCase() + formatted.slice(1)
 }
 
+function formatDateShort(value) {
+  if (!value) return 'Sob consulta'
+  const parsed = new Date(`${value}T00:00:00`)
+  if (Number.isNaN(parsed.getTime())) return 'Sob consulta'
+  const formatted = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(parsed)
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1)
+}
+
 function formatAddress(localizacao) {
   if (!localizacao) return 'Endereço da obra sob consulta'
   return [
@@ -48,19 +56,34 @@ function formatAddress(localizacao) {
     localizacao.complemento,
     localizacao.bairro,
     [localizacao.cidade, localizacao.estado].filter(Boolean).join(' - ')
-  ].filter(Boolean).join(' • ')
+  ].filter(Boolean).join(', ')
 }
 
 function formatPavimentoLabel(value) {
-  const digits = String(value || '').match(/\d+/)?.[0]
-  if (!digits) return value || '—'
-  return `${digits}º`
+  const raw = String(value || '').trim()
+  const digits = raw.match(/\d+/)?.[0]
+  if (!digits) return raw || '—'
+  return raw.includes('*') ? `${digits}*` : digits
 }
+
+function formatSuitesVagas(tipo) {
+  const suites = String(tipo.quantidadeSuites ?? 0).padStart(2, '0')
+  const vagas = String(tipo.quantidadeVagas ?? 0).padStart(2, '0')
+  return `${suites} suítes | ${vagas} vagas`
+}
+
+function extractSortNumber(value) {
+  const digits = String(value || '').match(/\d+/)?.[0]
+  return digits ? Number(digits) : Number.NEGATIVE_INFINITY
+}
+
+const STANDARD_RIGHT_COLUMN_WIDTH = 450
 
 export default function PublicTabelaVendasPage() {
   const { publicToken } = useParams()
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
+  const tabelaConfig = data?.tabelaConfig || null
 
   useEffect(() => {
     if (!publicToken) return
@@ -70,6 +93,25 @@ export default function PublicTabelaVendasPage() {
   }, [publicToken])
 
   const tipos = data?.tipos || []
+  const theme = useMemo(() => {
+    const tema = tabelaConfig?.tema || 'CLASSICO'
+    const defaults = tema === 'EXECUTIVO'
+      ? { accent: '#1f3b5b', accentDark: '#152b42', soft: '#dbe5f0', text: '#1f2937', muted: '#667085', bg: '#ece8df', zebra: '#eef3f8', iconBg: '#eef4fa' }
+      : tema === 'CONTEMPORANEO'
+        ? { accent: '#8d5b34', accentDark: '#6f4728', soft: '#ecd9c9', text: '#33261d', muted: '#7b6859', bg: '#f7f1ea', zebra: '#f8efe6', iconBg: '#f3e8dc' }
+        : { accent: '#c7a24b', accentDark: '#9b7a30', soft: '#d8c69a', text: '#1d1d1b', muted: '#6f6758', bg: '#f4f0e7', zebra: '#f6f1e4', iconBg: '#f1f1ee' }
+
+    return {
+      accent: tabelaConfig?.corPrimaria || defaults.accent,
+      accentDark: defaults.accentDark,
+      soft: tabelaConfig?.corSecundaria || defaults.soft,
+      text: tabelaConfig?.corTexto || defaults.text,
+      muted: defaults.muted,
+      bg: tabelaConfig?.corFundo || defaults.bg,
+      zebra: defaults.zebra,
+      iconBg: defaults.iconBg
+    }
+  }, [tabelaConfig])
   const unidades = useMemo(() => {
     const codes = new Set()
     tipos.forEach((tipo) => {
@@ -77,15 +119,19 @@ export default function PublicTabelaVendasPage() {
         if (unidade.codigoUnidade) codes.add(unidade.codigoUnidade)
       })
     })
-    return Array.from(codes)
+    return Array.from(codes).sort((a, b) => extractSortNumber(b) - extractSortNumber(a) || String(b).localeCompare(String(a)))
   }, [tipos])
+  const rightColumnWidth = STANDARD_RIGHT_COLUMN_WIDTH
+  const imageHeight = Math.max(40, Math.min(85, Number(tabelaConfig?.alturaImagemPercentual) || 70))
+  const lowerHeight = 100 - imageHeight
+  const bottomSplit = Math.max(25, Math.min(75, Number(tabelaConfig?.divisaoInferiorPercentual) || 50))
 
   if (error) {
     return (
-      <div className="min-h-screen bg-pageSurface flex items-center justify-center p-6">
-        <div className="max-w-xl w-full text-center rounded-[2rem] p-10 bg-white shadow-soft border border-slate-200">
-          <h1 className="text-3xl font-bold mb-2 text-slate-900">Tabela indisponível</h1>
-          <p className="text-lg text-slate-600">{error}</p>
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ background: theme.bg }}>
+        <div className="max-w-xl w-full text-center rounded-[2rem] border bg-white p-10 shadow-soft" style={{ borderColor: theme.soft }}>
+          <h1 className="mb-2 text-3xl font-bold" style={{ color: theme.text }}>Tabela indisponível</h1>
+          <p className="text-lg" style={{ color: theme.muted }}>{error}</p>
         </div>
       </div>
     )
@@ -93,8 +139,8 @@ export default function PublicTabelaVendasPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-pageSurface flex items-center justify-center">
-        <p className="text-xl text-slate-700">Carregando tabela de vendas...</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: theme.bg }}>
+        <p className="text-xl" style={{ color: theme.muted }}>Carregando tabela de vendas...</p>
       </div>
     )
   }
@@ -104,221 +150,269 @@ export default function PublicTabelaVendasPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#dbeafe_0%,#f1f5f9_50%,#e2e8f0_100%)]">
+    <div className="min-h-screen px-4 py-6 md:px-6 md:py-8" style={{ background: theme.bg }}>
       <style>{`
         @media print {
           @page {
-            size: A4 landscape;
-            margin: 5mm;
+            size: landscape;
+            margin: 6mm;
           }
 
           html, body {
-            background: #ffffff !important;
+            background: #f4f0e7 !important;
             height: auto !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
 
           body * {
             visibility: hidden;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
 
-          .sales-print-root, .sales-print-root * {
+          .sales-sheet, .sales-sheet * {
             visibility: visible;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
           }
 
-          .sales-print-root {
+          .sales-sheet {
             position: absolute;
             inset: 0;
             width: 100%;
             max-width: none;
-            padding: 0 !important;
             margin: 0 !important;
+            padding: 0 !important;
           }
 
-          .sales-print-hero {
-            break-after: page;
-            box-shadow: none !important;
-            border-color: #cbd5e1 !important;
-            min-height: auto !important;
-            height: auto !important;
-            margin-bottom: 0 !important;
+          .sales-actions {
+            display: none !important;
           }
 
-          .sales-print-table {
-            box-shadow: none !important;
-            border-color: #cbd5e1 !important;
-            margin-top: 0 !important;
-            min-height: 0 !important;
-            height: auto !important;
-            overflow: hidden !important;
-            transform: scale(1.03);
-            transform-origin: top center;
-            page-break-before: auto !important;
+          .sales-main-grid {
+            gap: 8mm !important;
+            grid-template-columns: minmax(0, 2.28fr) ${STANDARD_RIGHT_COLUMN_WIDTH}px !important;
+            align-items: stretch !important;
           }
 
-          .sales-print-table table {
-            width: 100% !important;
-            table-layout: fixed !important;
-            font-size: 10px;
-            border: 1px solid #cbd5e1 !important;
-          }
-
-          .sales-print-table th,
-          .sales-print-table td {
-            padding: 6px 7px !important;
-            line-height: 1.2 !important;
-            border-color: #cbd5e1 !important;
-          }
-
-          .sales-print-table th p,
-          .sales-print-table td p {
-            line-height: 1.1 !important;
-          }
-
-          .sales-print-table th .text-lg {
-            font-size: 11px !important;
-          }
-
-          .sales-print-table thead th {
-            font-size: 7px !important;
-            letter-spacing: 0.06em !important;
-          }
-
-          .sales-print-table thead th .text-sm {
-            font-size: 10.5px !important;
-            line-height: 1.15 !important;
-          }
-
-          .sales-print-table tbody td {
-            font-size: 12px !important;
-            font-weight: 600 !important;
-          }
-
-          .sales-print-table thead tr {
-            background: #e5e7eb !important;
-          }
-
-          .sales-print-table tbody tr:nth-child(even) {
-            background: #f8fafc !important;
-          }
-
-          .sales-print-table .overflow-x-auto {
+          .sales-table-shell {
             overflow: visible !important;
           }
 
-          .sales-print-table tbody {
-            break-inside: avoid !important;
+          .sales-table {
+            font-size: 9px !important;
+            width: 100% !important;
           }
 
-          .sales-print-table tr,
-          .sales-print-table td,
-          .sales-print-table th {
-            break-inside: avoid !important;
+          .sales-table th,
+          .sales-table td {
+            padding: 5px 6px !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          .sales-sheet {
+            zoom: 1 !important;
           }
         }
       `}</style>
-      <main className="sales-print-root w-full max-w-none mx-auto px-4 py-6 md:px-6 md:py-10">
-        <section className="sales-print-hero rounded-[2rem] overflow-hidden border border-slate-200 bg-white/85 shadow-soft">
-          <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr]">
-            <div className="bg-slate-100 min-h-[320px]">
-              {data.fotoPerfilUrl ? (
-                <img src={data.fotoPerfilUrl} alt={data.empreendimentoNome} className="h-full w-full object-cover" />
-              ) : (
-                <div className="h-full min-h-[320px] grid place-items-center text-slate-500">Sem imagem de capa</div>
-              )}
-            </div>
-            <div className="p-8 md:p-10">
-              <div className="flex items-start justify-between gap-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-hubBlueDeep">Tabela de vendas</p>
-                <button
-                  type="button"
-                  onClick={handleGeneratePdf}
-                  className="print:hidden inline-flex items-center rounded-full bg-hubBlueDeep px-4 py-2 text-sm font-semibold text-white shadow-soft"
-                >
-                  Gerar PDF
-                </button>
-              </div>
-              <h1 className="mt-3 text-4xl md:text-5xl font-semibold text-slate-950">{data.empreendimentoNome}</h1>
-              <p className="mt-4 text-base md:text-lg leading-8 text-slate-600">
-                Valores da tabela de vendas referente ao mês correspondente.
-              </p>
-              <p className="mt-5 max-w-[34rem] text-xs uppercase tracking-[0.08em] leading-5 text-slate-500">
-                {formatAddress(data.localizacao)}
-              </p>
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="rounded-[1.35rem] border border-slate-200 bg-slate-50 px-4 py-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Mês de referência</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900">{formatDate(data.dataReferenciaTabelaVendas)}</p>
-                </div>
-                <div className="rounded-[1.35rem] border border-slate-200 bg-slate-50 px-4 py-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Início da obra</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900">{formatDate(data.dataInicioObra)}</p>
-                </div>
-                <div className="rounded-[1.35rem] border border-slate-200 bg-slate-50 px-4 py-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Entrega prevista</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900">{formatDate(data.dataEntrega)}</p>
-                </div>
-              </div>
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="rounded-[1.35rem] border border-slate-200 bg-slate-50 px-4 py-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Entrada</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900">{formatEntrada(data.condicoesPagamento)}</p>
-                </div>
-                <div className="rounded-[1.35rem] border border-slate-200 bg-slate-50 px-4 py-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Saldo</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900">{data.condicoesPagamento?.saldo || 'Sob consulta'}</p>
-                </div>
-                <div className="rounded-[1.35rem] border border-slate-200 bg-slate-50 px-4 py-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Reforços</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900">{data.condicoesPagamento?.reforcos || 'Sob consulta'}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
 
-        <section className="sales-print-table mt-6 rounded-[2rem] border border-slate-200 bg-white/85 shadow-soft overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full table-fixed border-collapse">
-              <thead>
-                <tr className="bg-slate-100 text-center">
-                  <th className="px-5 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 align-middle">Pavimento</th>
-                  {tipos.map((tipo) => (
-                    <th key={tipo.titulo} className="px-4 py-4 border-l border-slate-200 align-middle text-center">
-                      <div className="space-y-2">
-                        <p className="text-lg font-semibold text-slate-950">{tipo.titulo}</p>
-                        <p className="text-sm text-slate-600">Área: {formatArea(tipo.areaMetragem)}</p>
-                        <p className="text-sm text-slate-600">Suítes: {tipo.quantidadeSuites ?? 0}</p>
-                        <p className="text-sm text-slate-600">Vagas: {tipo.quantidadeVagas ?? 0}</p>
-                      </div>
-                    </th>
+      <main className="sales-sheet mx-auto flex min-h-[calc(100vh-3rem)] max-w-[1770px] flex-col">
+        <div className="sales-actions mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={handleGeneratePdf}
+              className="inline-flex items-center rounded-full px-5 py-3 text-sm font-semibold text-white shadow-soft"
+              style={{ background: theme.accent }}
+            >
+              Gerar PDF
+            </button>
+            <Link
+              to={`/materiais-publicos/${publicToken}`}
+              className="inline-flex items-center rounded-full border bg-white px-5 py-3 text-sm font-semibold"
+              style={{ borderColor: theme.accent, color: theme.text }}
+            >
+              Ver apresentação do empreendimento
+            </Link>
+          </div>
+          <p className="text-sm uppercase tracking-[0.18em]" style={{ color: theme.muted }}>
+            Tabela pública atualizada com os dados cadastrados no sistema
+          </p>
+        </div>
+
+        <section
+          className="sales-main-grid grid items-stretch gap-5 lg:grid-cols-[minmax(0,2.28fr)_450px]"
+          style={{ minHeight: 'calc(100vh - 12.5rem)' }}
+        >
+          <div className="min-w-0 overflow-hidden rounded-[1.9rem] border bg-white shadow-[0_18px_40px_rgba(69,59,40,0.12)]" style={{ borderColor: `${theme.text}30`, minHeight: '100%' }}>
+            <div className="grid grid-cols-[0.78fr_1.38fr_0.9fr] gap-4 px-6 py-5 text-white" style={{ background: theme.accent }}>
+              <div className="text-sm leading-6">
+                <p><span className="font-semibold">Referência:</span> {data.dataReferenciaTabelaVendas ? formatDateShort(data.dataReferenciaTabelaVendas) : 'Sob consulta'}</p>
+                <p><span className="font-semibold">Início:</span> {formatDateShort(data.dataInicioObra)}</p>
+                <p><span className="font-semibold">Entrega:</span> {formatDateShort(data.dataEntrega)}</p>
+                {(tabelaConfig?.exibirEndereco ?? true) && (
+                  <p className="mt-2 text-[11px] leading-5 text-white/85">{formatAddress(data.localizacao)}</p>
+                )}
+              </div>
+              <div className="flex items-start justify-center gap-3 text-center lg:text-left">
+                <div className="text-left">
+                  <p className="text-[2.15rem] font-semibold leading-none tracking-tight">CUB</p>
+                  <p className="text-[2.15rem] font-light leading-none tracking-tight">SC</p>
+                </div>
+                <div className="h-14 w-px bg-white/45" />
+                <div className="text-left uppercase leading-none">
+                  <p className="text-[2rem] font-semibold tracking-tight">Tabela</p>
+                  <p className="text-[2rem] font-light tracking-tight">de Preços</p>
+                </div>
+              </div>
+              <div className="flex flex-col items-end justify-between text-right">
+                <p className="text-sm uppercase tracking-[0.22em] text-white/75">Empreendimento</p>
+                <p className="text-2xl font-semibold leading-tight">{data.empreendimentoNome}</p>
+              </div>
+            </div>
+
+            <div className="sales-table-shell overflow-x-auto">
+              <table className="sales-table w-full border-collapse text-center text-[12px]" style={{ color: theme.text }}>
+                <thead>
+                  <tr className="bg-black text-white">
+                    <th className="w-[70px] border border-black/70 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]">Pav.</th>
+                    {tipos.map((tipo, index) => (
+                      <th key={`${tipo.titulo}-${index}`} className="border border-black/70 px-2 py-2">
+                        <p className="text-[13px] font-semibold uppercase tracking-[0.08em]">{tipo.titulo || `Tipo ${index + 1}`}</p>
+                      </th>
+                    ))}
+                  </tr>
+                  <tr className="bg-black text-white">
+                    <th className="border border-black/70 px-3 py-2" />
+                    {tipos.map((tipo, index) => (
+                      <th key={`${tipo.titulo}-${index}-area`} className="border border-black/70 px-2 py-2 text-[12px] font-semibold">
+                        {formatArea(tipo.areaMetragem)}
+                      </th>
+                    ))}
+                  </tr>
+                  <tr style={{ background: '#fff', color: theme.text }}>
+                    <th className="border border-[#665e4e]/55 px-3 py-2" />
+                    {tipos.map((tipo, index) => (
+                      <th key={`${tipo.titulo}-${index}-meta`} className="border border-[#665e4e]/55 px-2 py-2 text-[12px] font-semibold uppercase tracking-[0.06em]">
+                        {formatSuitesVagas(tipo)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {unidades.length === 0 && (
+                    <tr>
+                      <td colSpan={Math.max(2, tipos.length + 1)} className="border px-5 py-8 text-center" style={{ borderColor: `${theme.text}55`, color: theme.muted }}>
+                        Nenhum pavimento cadastrado para este empreendimento.
+                      </td>
+                    </tr>
+                  )}
+                  {unidades.map((codigoUnidade, rowIndex) => (
+                    <tr key={codigoUnidade} style={{ background: rowIndex % 2 === 0 ? '#fff' : theme.zebra }}>
+                      <td className="border px-3 py-1.5 font-medium" style={{ borderColor: `${theme.text}55` }}>{formatPavimentoLabel(codigoUnidade)}</td>
+                      {tipos.map((tipo, tipoIndex) => {
+                        const unidade = (tipo.unidades || []).find((item) => item.codigoUnidade === codigoUnidade)
+                        const displayValue = formatDisplayValue(unidade)
+                        const reserved = displayValue === 'RESERVADO'
+                        return (
+                          <td
+                            key={`${tipo.titulo}-${tipoIndex}-${codigoUnidade}`}
+                            className={`border px-2 py-1.5 font-medium ${reserved ? 'font-semibold uppercase' : ''}`}
+                            style={{
+                              borderColor: `${theme.text}55`,
+                              background: reserved ? theme.soft : undefined,
+                              color: theme.text
+                            }}
+                          >
+                            {displayValue}
+                          </td>
+                        )
+                      })}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {unidades.length === 0 && (
-                  <tr>
-                    <td colSpan={Math.max(2, tipos.length + 1)} className="px-5 py-8 text-center text-slate-500">
-                      Nenhum pavimento cadastrado para este empreendimento.
+                </tbody>
+                <tfoot>
+                  <tr style={{ background: theme.accent, color: '#fff' }}>
+                    <td className="border px-3 py-2 text-left text-[12px] font-semibold" style={{ borderColor: theme.accentDark }} colSpan={Math.max(1, Math.floor((tipos.length + 1) / 3))}>
+                      * Unidades especiais
+                    </td>
+                    <td className="border px-3 py-2 text-center text-[1.1rem] font-semibold" style={{ borderColor: theme.accentDark }} colSpan={Math.max(1, Math.ceil((tipos.length + 1) / 3))}>
+                      {data.empreendimentoNome}
+                    </td>
+                    <td className="border px-3 py-2 text-right text-[12px] font-semibold" style={{ borderColor: theme.accentDark }} colSpan={Math.max(1, tipos.length + 1 - Math.max(1, Math.floor((tipos.length + 1) / 3)) - Math.max(1, Math.ceil((tipos.length + 1) / 3)))}>
+                      Correção CUB SC
                     </td>
                   </tr>
-                )}
-                {unidades.map((codigoUnidade) => (
-                  <tr key={codigoUnidade} className="border-t border-slate-200">
-                    <td className="px-5 py-4 font-semibold text-slate-900 bg-white text-center align-middle">{formatPavimentoLabel(codigoUnidade)}</td>
-                    {tipos.map((tipo) => {
-                      const unidade = (tipo.unidades || []).find((item) => item.codigoUnidade === codigoUnidade)
-                      return (
-                        <td key={`${tipo.titulo}-${codigoUnidade}`} className="px-5 py-4 border-l border-slate-200 text-slate-700 text-center align-middle">
-                          {formatDisplayValue(unidade)}
-                        </td>
-                      )
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                </tfoot>
+              </table>
+            </div>
           </div>
+
+          <aside className="min-w-0 max-w-full self-stretch overflow-hidden rounded-[1.8rem] border bg-white shadow-[0_18px_40px_rgba(69,59,40,0.12)]" style={{ borderColor: `${theme.text}35`, minHeight: '100%' }}>
+            <div className="grid h-full min-h-full" style={{ gridTemplateRows: `${imageHeight}% ${lowerHeight}%` }}>
+            <div className="relative h-full overflow-hidden rounded-[1.35rem] m-3 mb-0 shadow-[0_10px_24px_rgba(26,26,26,0.16)]" style={{ background: theme.accentDark }}>
+              {data.fotoPerfilUrl ? (
+                <img
+                  src={data.fotoPerfilUrl}
+                  alt={data.empreendimentoNome}
+                  className="h-full min-h-[220px] w-full object-cover"
+                />
+              ) : (
+                <div className="grid h-full min-h-[220px] place-items-center text-lg text-white/80" style={{ background: `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accentDark} 100%)` }}>
+                  Sem imagem de capa
+                </div>
+              )}
+            </div>
+
+            <div
+              className={`mx-3 mt-0 grid h-full min-h-0 overflow-hidden rounded-[1.2rem] border shadow-[0_10px_24px_rgba(26,26,26,0.12)] ${(tabelaConfig?.exibirIcone ?? true) ? 'grid-cols-2' : 'grid-cols-1'}`}
+              style={{
+                borderColor: theme.soft,
+                gridTemplateColumns: (tabelaConfig?.exibirIcone ?? true) ? `${bottomSplit}% ${100 - bottomSplit}%` : '1fr'
+              }}
+            >
+              {(tabelaConfig?.exibirIcone ?? true) && (
+                <div className="flex items-center justify-center overflow-hidden border-r px-4 py-4" style={{ borderColor: theme.soft, background: theme.iconBg }}>
+                  {data.iconeUrl ? (
+                  <div className="flex h-full w-full items-center justify-center overflow-hidden">
+                    <img
+                      src={data.iconeUrl}
+                      alt="Ícone institucional"
+                      className="h-full w-full scale-[1.45] object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="text-center text-xs uppercase tracking-[0.16em] text-[#8a7f68]">
+                    Ícone institucional
+                  </div>
+                )}
+                </div>
+              )}
+
+              <div className="overflow-hidden" style={{ background: tabelaConfig?.pagamentoEmDestaque === false ? theme.soft : theme.accent, color: tabelaConfig?.pagamentoEmDestaque === false ? theme.text : '#fff' }}>
+                <div className="flex h-full flex-col justify-center px-4 py-4 text-center text-white" style={{ color: tabelaConfig?.pagamentoEmDestaque === false ? theme.text : '#fff' }}>
+                  <div>
+                  <p className="text-[13px] uppercase tracking-[0.15em]" style={{ color: tabelaConfig?.pagamentoEmDestaque === false ? theme.text : 'rgba(255,255,255,0.8)' }}>Formas de</p>
+                  <p className="pb-[5px] text-[1.405rem] font-semibold uppercase leading-[1.15]">Pagamento</p>
+                  </div>
+                  <div className="mt-3 space-y-1.5">
+                    <p className="text-[0.965rem] font-semibold leading-4">{formatEntrada(data.condicoesPagamento)} de entrada</p>
+                    <p className="text-[0.965rem] font-semibold leading-4">Saldo em {data.condicoesPagamento?.saldo || 'sob consulta'}</p>
+                    <p className="text-[0.965rem] font-semibold leading-4">{data.condicoesPagamento?.reforcos || 'Sob consulta'} reforços</p>
+                    <p className="pt-1 text-[12px] italic leading-4" style={{ color: tabelaConfig?.pagamentoEmDestaque === false ? theme.text : 'rgba(255,255,255,0.85)' }}>Correção CUB SC</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            </div>
+          </aside>
         </section>
+        <p className="mt-4 text-center text-[11px] uppercase tracking-[0.16em]" style={{ color: theme.muted }}>
+          {tabelaConfig?.textoRodape || 'Valores sujeitos a reajuste mensal conforme índice CUB/SC. Materiais e condições conforme cadastro vigente.'}
+        </p>
       </main>
     </div>
   )
