@@ -348,42 +348,57 @@ public class EmpreendimentoService {
     private void applyTipos(Empreendimento empreendimento,
                             List<EmpreendimentoDtos.TipoRequest> tiposRequest,
                             Map<Integer, String> tipoImageUrls) {
-        empreendimento.getTipos().clear();
-        int index = 1;
-        for (EmpreendimentoDtos.TipoRequest tipoRequest : tiposRequest) {
-            int currentIndex = index;
-            empreendimento.getTipos().add(EmpreendimentoTipo.builder()
-                    .empreendimento(empreendimento)
-                    .titulo("Tipo " + currentIndex)
-                    .areaMetragem(tipoRequest.areaMetragem())
-                    .plantaImagemUrl(tipoImageUrls.getOrDefault(currentIndex - 1, tipoRequest.plantaImagemUrl()))
-                    .quantidadeSuites(tipoRequest.quantidadeSuites())
-                    .quantidadeVagas(tipoRequest.quantidadeVagas())
-                    .build());
-            EmpreendimentoTipo tipo = empreendimento.getTipos().get(empreendimento.getTipos().size() - 1);
-            tipo.getUnidades().clear();
-            for (EmpreendimentoDtos.TipoUnidadeRequest unidadeRequest : tipoRequest.unidades()) {
-                String tipoValor = unidadeRequest.tipoValor().trim().toUpperCase();
-                BigDecimal valor = unidadeRequest.valor();
-                if (!"VALOR".equals(tipoValor) && !"RESERVADO".equals(tipoValor)) {
-                    throw new ResponseStatusException(BAD_REQUEST, "Tipo de valor inválido para pavimento");
-                }
-                if ("VALOR".equals(tipoValor)) {
-                    if (valor == null || valor.compareTo(BigDecimal.ZERO) <= 0) {
-                        throw new ResponseStatusException(BAD_REQUEST, "Informe um valor monetário válido para o pavimento");
-                    }
-                } else {
-                    valor = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
-                }
+        while (empreendimento.getTipos().size() > tiposRequest.size()) {
+            empreendimento.getTipos().remove(empreendimento.getTipos().size() - 1);
+        }
 
-                tipo.getUnidades().add(EmpreendimentoTipoUnidade.builder()
-                        .tipo(tipo)
-                        .codigoUnidade(unidadeRequest.codigoUnidade())
-                        .tipoValor(tipoValor)
-                        .valor(valor)
-                        .build());
+        for (int index = 0; index < tiposRequest.size(); index++) {
+            EmpreendimentoDtos.TipoRequest tipoRequest = tiposRequest.get(index);
+            EmpreendimentoTipo tipo;
+
+            if (index < empreendimento.getTipos().size()) {
+                tipo = empreendimento.getTipos().get(index);
+            } else {
+                tipo = EmpreendimentoTipo.builder()
+                        .empreendimento(empreendimento)
+                        .build();
+                empreendimento.getTipos().add(tipo);
             }
-            index++;
+
+            tipo.setTitulo("Tipo " + (index + 1));
+            tipo.setAreaMetragem(tipoRequest.areaMetragem());
+            tipo.setPlantaImagemUrl(tipoImageUrls.getOrDefault(index, tipoRequest.plantaImagemUrl()));
+            tipo.setQuantidadeSuites(tipoRequest.quantidadeSuites());
+            tipo.setQuantidadeVagas(tipoRequest.quantidadeVagas());
+
+            applyUnidades(tipo, tipoRequest.unidades());
+        }
+    }
+
+    private void applyUnidades(EmpreendimentoTipo tipo,
+                               List<EmpreendimentoDtos.TipoUnidadeRequest> unidadesRequest) {
+        tipo.getUnidades().clear();
+
+        for (EmpreendimentoDtos.TipoUnidadeRequest unidadeRequest : unidadesRequest) {
+            String tipoValor = unidadeRequest.tipoValor().trim().toUpperCase();
+            BigDecimal valor = unidadeRequest.valor();
+            if (!"VALOR".equals(tipoValor) && !"RESERVADO".equals(tipoValor)) {
+                throw new ResponseStatusException(BAD_REQUEST, "Tipo de valor inválido para pavimento");
+            }
+            if ("VALOR".equals(tipoValor)) {
+                if (valor == null || valor.compareTo(BigDecimal.ZERO) <= 0) {
+                    throw new ResponseStatusException(BAD_REQUEST, "Informe um valor monetário válido para o pavimento");
+                }
+            } else {
+                valor = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+            }
+
+            tipo.getUnidades().add(EmpreendimentoTipoUnidade.builder()
+                    .tipo(tipo)
+                    .codigoUnidade(unidadeRequest.codigoUnidade())
+                    .tipoValor(tipoValor)
+                    .valor(valor)
+                    .build());
         }
     }
 
