@@ -377,9 +377,12 @@ public class EmpreendimentoService {
 
     private void applyUnidades(EmpreendimentoTipo tipo,
                                List<EmpreendimentoDtos.TipoUnidadeRequest> unidadesRequest) {
-        tipo.getUnidades().clear();
+        while (tipo.getUnidades().size() > unidadesRequest.size()) {
+            tipo.getUnidades().remove(tipo.getUnidades().size() - 1);
+        }
 
-        for (EmpreendimentoDtos.TipoUnidadeRequest unidadeRequest : unidadesRequest) {
+        for (int index = 0; index < unidadesRequest.size(); index++) {
+            EmpreendimentoDtos.TipoUnidadeRequest unidadeRequest = unidadesRequest.get(index);
             String tipoValor = unidadeRequest.tipoValor().trim().toUpperCase();
             BigDecimal valor = unidadeRequest.valor();
             if (!"VALOR".equals(tipoValor) && !"RESERVADO".equals(tipoValor)) {
@@ -393,12 +396,20 @@ public class EmpreendimentoService {
                 valor = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
             }
 
-            tipo.getUnidades().add(EmpreendimentoTipoUnidade.builder()
-                    .tipo(tipo)
-                    .codigoUnidade(unidadeRequest.codigoUnidade())
-                    .tipoValor(tipoValor)
-                    .valor(valor)
-                    .build());
+            EmpreendimentoTipoUnidade unidade;
+            if (index < tipo.getUnidades().size()) {
+                unidade = tipo.getUnidades().get(index);
+            } else {
+                unidade = EmpreendimentoTipoUnidade.builder()
+                        .tipo(tipo)
+                        .build();
+                tipo.getUnidades().add(unidade);
+            }
+
+            unidade.setTipo(tipo);
+            unidade.setCodigoUnidade(unidadeRequest.codigoUnidade());
+            unidade.setTipoValor(tipoValor);
+            unidade.setValor(valor);
         }
     }
 
