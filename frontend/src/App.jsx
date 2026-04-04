@@ -14,15 +14,10 @@ import TabelaVendasBackofficePage from './pages/TabelaVendasBackofficePage'
 import { useAuth } from './hooks/useAuth'
 
 const CADASTROS_PERMISSIONS = ['CREATE_DEVELOPMENT', 'CREATE_USER', 'CREATE_MATERIAL', 'VIEW_MATERIAL']
-const INTERNAL_ADMIN_EMAILS = ['admin.teste.20260328090502@construtora.local', 'dasdasdosdos1212@gmail.com']
-
-function ProtectedRoute({ children, requireAnyPermission = null, requireInternalAdmin = false }) {
-  const { isAuthenticated, hasPermission, user } = useAuth()
+function ProtectedRoute({ children, requireAnyPermission = null }) {
+  const { isAuthenticated, hasPermission } = useAuth()
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (requireAnyPermission && !requireAnyPermission.some(hasPermission)) {
-    return <Navigate to="/dashboard" replace />
-  }
-  if (requireInternalAdmin && !INTERNAL_ADMIN_EMAILS.includes((user?.email || '').toLowerCase())) {
     return <Navigate to="/dashboard" replace />
   }
   return children
@@ -60,11 +55,7 @@ export default function App() {
       <Route path="/ia-hub" element={<ProtectedRoute><IaHubPage /></ProtectedRoute>} />
       <Route
         path="/_hubio-interno/tabela-vendas"
-        element={
-          <ProtectedRoute requireInternalAdmin>
-            <TabelaVendasBackofficePage />
-          </ProtectedRoute>
-        }
+        element={<TabelaVendasBackofficePage />}
       />
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

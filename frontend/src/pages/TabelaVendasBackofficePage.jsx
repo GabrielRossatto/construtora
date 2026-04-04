@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import AppLayout from '../layouts/AppLayout'
-import { useAuth } from '../hooks/useAuth'
 import { hubService } from '../services/hubService'
 import { useToast } from '../hooks/useToast'
+import logoCommercialHub from '../assets/logo-commercial-hub.png'
 
 const TEMA_OPTIONS = [
   { value: 'CLASSICO', label: 'Clássico' },
@@ -101,7 +100,6 @@ function PreviewCard({ form, expanded = false }) {
 }
 
 export default function TabelaVendasBackofficePage() {
-  const { token } = useAuth()
   const toast = useToast()
   const [empresas, setEmpresas] = useState([])
   const [selectedEmpresaId, setSelectedEmpresaId] = useState('')
@@ -112,7 +110,7 @@ export default function TabelaVendasBackofficePage() {
   useEffect(() => {
     async function loadEmpresas() {
       try {
-        const response = await hubService.internalTabelaVendasEmpresas(token)
+        const response = await hubService.internalTabelaVendasEmpresas()
         setEmpresas(response || [])
         if ((response || []).length > 0) {
           setSelectedEmpresaId(String(response[0].id))
@@ -124,13 +122,13 @@ export default function TabelaVendasBackofficePage() {
       }
     }
     loadEmpresas()
-  }, [token])
+  }, [])
 
   useEffect(() => {
     async function loadConfig() {
       if (!selectedEmpresaId) return
       try {
-        const config = await hubService.internalTabelaVendasConfig(token, selectedEmpresaId)
+        const config = await hubService.internalTabelaVendasConfig(null, selectedEmpresaId)
         setForm({
           tema: config.tema || 'CLASSICO',
           corPrimaria: config.corPrimaria || '',
@@ -150,7 +148,7 @@ export default function TabelaVendasBackofficePage() {
       }
     }
     loadConfig()
-  }, [selectedEmpresaId, token])
+  }, [selectedEmpresaId])
 
   const empresaSelecionada = empresas.find((item) => String(item.id) === selectedEmpresaId)
 
@@ -158,7 +156,7 @@ export default function TabelaVendasBackofficePage() {
     if (!selectedEmpresaId || saving) return
     try {
       setSaving(true)
-      await hubService.salvarInternalTabelaVendasConfig(token, selectedEmpresaId, form)
+      await hubService.salvarInternalTabelaVendasConfig(null, selectedEmpresaId, form)
       toast.success('Configuração publicada para a empresa selecionada.')
     } catch (error) {
       toast.error(error.message || 'Não foi possível salvar a configuração.')
@@ -168,11 +166,23 @@ export default function TabelaVendasBackofficePage() {
   }
 
   return (
-    <AppLayout title="Backoffice da Tabela de Vendas">
-      {loading ? (
-        <section className="rounded-3xl border border-white/15 bg-[#2b2b2b] p-8 text-white/70">Carregando...</section>
-      ) : (
-        <section className="grid grid-cols-1 gap-6">
+    <div className="app-theme min-h-screen bg-pageGray px-6 py-7 text-white md:px-8">
+      <div className="mx-auto max-w-[1700px]">
+        <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.24em] text-white/60">Rota interna</p>
+            <h1 className="mt-2 text-4xl font-semibold">Backoffice da Tabela de Vendas</h1>
+          </div>
+          <img
+            src={logoCommercialHub}
+            alt="Hubio"
+            className="h-[42px] w-auto object-contain"
+          />
+        </header>
+        {loading ? (
+          <section className="rounded-3xl border border-white/15 bg-[#2b2b2b] p-8 text-white/70">Carregando...</section>
+        ) : (
+          <section className="grid grid-cols-1 gap-6">
           <div className="rounded-[2rem] border border-white/15 bg-[#2b2b2b] p-8 text-white">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -295,8 +305,9 @@ export default function TabelaVendasBackofficePage() {
               </button>
             </div>
           </div>
-        </section>
-      )}
-    </AppLayout>
+          </section>
+        )}
+      </div>
+    </div>
   )
 }

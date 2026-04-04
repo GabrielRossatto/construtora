@@ -55,6 +55,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login", "/actuator/health", "/api/public/**").permitAll()
+                        .requestMatchers("/api/internal/tabela-vendas/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/empresas").permitAll()
                         .anyRequest().authenticated()
                 )
