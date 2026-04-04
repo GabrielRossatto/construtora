@@ -17,16 +17,13 @@ import java.util.List;
 @Service
 public class TabelaVendasAdminService {
 
-    private final InternalAdminAccessService internalAdminAccessService;
     private final EmpresaRepository empresaRepository;
     private final EmpreendimentoRepository empreendimentoRepository;
     private final TabelaVendasEmpresaConfigRepository tabelaVendasEmpresaConfigRepository;
 
-    public TabelaVendasAdminService(InternalAdminAccessService internalAdminAccessService,
-                                    EmpresaRepository empresaRepository,
+    public TabelaVendasAdminService(EmpresaRepository empresaRepository,
                                     EmpreendimentoRepository empreendimentoRepository,
                                     TabelaVendasEmpresaConfigRepository tabelaVendasEmpresaConfigRepository) {
-        this.internalAdminAccessService = internalAdminAccessService;
         this.empresaRepository = empresaRepository;
         this.empreendimentoRepository = empreendimentoRepository;
         this.tabelaVendasEmpresaConfigRepository = tabelaVendasEmpresaConfigRepository;
@@ -34,7 +31,6 @@ public class TabelaVendasAdminService {
 
     @Transactional(readOnly = true)
     public List<TabelaVendasAdminDtos.EmpresaResumo> listarEmpresas() {
-        internalAdminAccessService.ensureInternalAdmin();
         return empresaRepository.findAll(Sort.by(Sort.Direction.ASC, "nome")).stream()
                 .map(empresa -> new TabelaVendasAdminDtos.EmpresaResumo(
                         empresa.getId(),
@@ -49,7 +45,6 @@ public class TabelaVendasAdminService {
 
     @Transactional(readOnly = true)
     public TabelaVendasAdminDtos.TabelaVendasConfigResponse obterConfig(Long empresaId) {
-        internalAdminAccessService.ensureInternalAdmin();
         Empresa empresa = empresaRepository.findById(empresaId)
                 .orElseThrow(() -> new NotFoundException("Empresa não encontrada"));
         TabelaVendasEmpresaConfig config = tabelaVendasEmpresaConfigRepository.findByEmpresaId(empresaId)
@@ -60,7 +55,6 @@ public class TabelaVendasAdminService {
     @Transactional
     public TabelaVendasAdminDtos.TabelaVendasConfigResponse salvarConfig(Long empresaId,
                                                                          TabelaVendasAdminDtos.TabelaVendasConfigRequest request) {
-        internalAdminAccessService.ensureInternalAdmin();
         Empresa empresa = empresaRepository.findById(empresaId)
                 .orElseThrow(() -> new NotFoundException("Empresa não encontrada"));
 
