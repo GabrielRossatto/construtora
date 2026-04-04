@@ -8,7 +8,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
-import software.amazon.awssdk.services.s3.model.PutBucketPolicyRequest;
+import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
@@ -69,6 +69,7 @@ public class S3FileStorageService implements FileStorageService {
                     .bucket(bucket)
                     .key(key)
                     .contentType(file.getContentType())
+                    .acl(publicRead ? ObjectCannedACL.PUBLIC_READ : null)
                     .build();
 
             s3Client.putObject(request, software.amazon.awssdk.core.sync.RequestBody.fromBytes(file.getBytes()));
@@ -105,26 +106,6 @@ public class S3FileStorageService implements FileStorageService {
             } else {
                 throw e;
             }
-        }
-
-        if (publicRead) {
-            String policy = """
-                    {
-                      "Version":"2012-10-17",
-                      "Statement":[
-                        {
-                          "Effect":"Allow",
-                          "Principal":"*",
-                          "Action":["s3:GetObject"],
-                          "Resource":["arn:aws:s3:::%s/*"]
-                        }
-                      ]
-                    }
-                    """.formatted(bucket);
-            s3Client.putBucketPolicy(PutBucketPolicyRequest.builder()
-                    .bucket(bucket)
-                    .policy(policy)
-                    .build());
         }
     }
 
