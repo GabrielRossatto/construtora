@@ -18,9 +18,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -377,12 +381,22 @@ public class EmpreendimentoService {
 
     private void applyUnidades(EmpreendimentoTipo tipo,
                                List<EmpreendimentoDtos.TipoUnidadeRequest> unidadesRequest) {
-        while (tipo.getUnidades().size() > unidadesRequest.size()) {
-            tipo.getUnidades().remove(tipo.getUnidades().size() - 1);
+        Map<String, EmpreendimentoTipoUnidade> existentesPorCodigo = new LinkedHashMap<>();
+        for (EmpreendimentoTipoUnidade unidadeExistente : tipo.getUnidades()) {
+            existentesPorCodigo.put(unidadeExistente.getCodigoUnidade(), unidadeExistente);
         }
 
-        for (int index = 0; index < unidadesRequest.size(); index++) {
-            EmpreendimentoDtos.TipoUnidadeRequest unidadeRequest = unidadesRequest.get(index);
+        List<EmpreendimentoTipoUnidade> novasUnidades = new ArrayList<>();
+        Set<String> codigosRecebidos = new HashSet<>();
+
+        for (EmpreendimentoDtos.TipoUnidadeRequest unidadeRequest : unidadesRequest) {
+            String codigoUnidade = unidadeRequest.codigoUnidade().trim();
+            if (codigoUnidade.isBlank()) {
+                throw new ResponseStatusException(BAD_REQUEST, "Informe o código do pavimento");
+            }
+            if (!codigosRecebidos.add(codigoUnidade)) {
+                throw new ResponseStatusException(BAD_REQUEST, "Existem pavimentos duplicados no mesmo tipo");
+            }
             String tipoValor = unidadeRequest.tipoValor().trim().toUpperCase();
             BigDecimal valor = unidadeRequest.valor();
             if (!"VALOR".equals(tipoValor) && !"RESERVADO".equals(tipoValor)) {
@@ -396,21 +410,22 @@ public class EmpreendimentoService {
                 valor = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
             }
 
-            EmpreendimentoTipoUnidade unidade;
-            if (index < tipo.getUnidades().size()) {
-                unidade = tipo.getUnidades().get(index);
-            } else {
+            EmpreendimentoTipoUnidade unidade = existentesPorCodigo.get(codigoUnidade);
+            if (unidade == null) {
                 unidade = EmpreendimentoTipoUnidade.builder()
                         .tipo(tipo)
                         .build();
-                tipo.getUnidades().add(unidade);
             }
 
             unidade.setTipo(tipo);
-            unidade.setCodigoUnidade(unidadeRequest.codigoUnidade());
+            unidade.setCodigoUnidade(codigoUnidade);
             unidade.setTipoValor(tipoValor);
             unidade.setValor(valor);
+            novasUnidades.add(unidade);
         }
+
+        tipo.getUnidades().clear();
+        tipo.getUnidades().addAll(novasUnidades);
     }
 
     private Map<Integer, String> extractTipoImageUrls(Map<String, MultipartFile> multipartFiles) {
