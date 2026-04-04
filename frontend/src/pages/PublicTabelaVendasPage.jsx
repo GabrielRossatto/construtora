@@ -397,9 +397,11 @@ export default function PublicTabelaVendasPage() {
             </div>
           </aside>
         </section>
-        <p className="mt-4 text-center text-[11px] uppercase tracking-[0.16em]" style={{ color: theme.muted }}>
-          {tabelaConfig?.textoRodape || 'Materiais e condições conforme cadastro vigente.'}
-        </p>
+        {tabelaConfig?.textoRodape && (
+          <p className="mt-4 text-center text-[11px] uppercase tracking-[0.16em]" style={{ color: theme.muted }}>
+            {tabelaConfig.textoRodape}
+          </p>
+        )}
       </main>
     </div>
   )
