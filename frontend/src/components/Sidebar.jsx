@@ -7,9 +7,9 @@ const CADASTROS_PERMISSIONS = ['CREATE_DEVELOPMENT', 'CREATE_USER', 'CREATE_MATE
 export default function Sidebar({ user }) {
   const location = useLocation()
   const navigate = useNavigate()
-  const { logout, hasPermission, token } = useAuth()
+  const { logout, hasPermission, token, updateUser } = useAuth()
   const [iconeUrl, setIconeUrl] = useState(null)
-  const [planoEmpresa, setPlanoEmpresa] = useState(null)
+  const [planoEmpresa, setPlanoEmpresa] = useState(user?.empresaPlano || null)
   const canAccessCadastros = CADASTROS_PERMISSIONS.some(hasPermission)
   const canAccessUsuarios = hasPermission('VIEW_USER')
   const canAccessIa = planoEmpresa === 'PRO' || planoEmpresa === 'ENTERPRISE'
@@ -32,13 +32,15 @@ export default function Sidebar({ user }) {
     hubService.minhaEmpresa(token)
       .then((data) => {
         setIconeUrl(data?.iconeUrl || null)
-        setPlanoEmpresa(data?.plano || null)
+        setPlanoEmpresa((current) => data?.plano || current)
+        if (data?.plano && data.plano !== user?.empresaPlano) {
+          updateUser({ empresaPlano: data.plano })
+        }
       })
       .catch(() => {
         setIconeUrl(null)
-        setPlanoEmpresa(null)
       })
-  }, [token])
+  }, [token, updateUser, user?.empresaPlano])
 
   return (
     <aside className="sidebar-gradient sticky top-0 h-screen w-72 shrink-0 overflow-y-auto text-white relative">
