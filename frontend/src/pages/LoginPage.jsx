@@ -4,6 +4,8 @@ import { useAuth } from '../hooks/useAuth'
 import { authService } from '../services/authService'
 import logoCommercialHub from '../assets/logo-commercial-hub.jpeg'
 
+const MOCK_LOGIN_ENABLED = import.meta.env.VITE_ENABLE_MOCK_LOGIN === 'true'
+
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
@@ -55,6 +57,11 @@ export default function LoginPage() {
           </label>
 
           {erro && <p className="mb-4 rounded-xl bg-red-600/30 px-4 py-2 text-base text-red-100">{erro}</p>}
+          {MOCK_LOGIN_ENABLED && (
+            <p className="mb-4 rounded-xl bg-amber-500/20 px-4 py-3 text-sm text-amber-100">
+              Modo demonstracao ativo. O login funciona sem backend real.
+            </p>
+          )}
 
           <div className="flex flex-wrap items-center gap-3">
             <button disabled={loading} className="rounded-xl bg-hubBlueDeep px-5 py-2 text-2xl font-semibold">
