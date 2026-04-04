@@ -7,6 +7,49 @@ import { useToast } from '../hooks/useToast'
 
 const API_URL = getApiBaseUrl()
 
+function getPreviewKind(item) {
+  const url = String(item?.arquivoUrl || '').toLowerCase()
+  const name = String(item?.arquivoNome || item?.titulo || '').toLowerCase()
+  if (/\.(png|jpe?g|gif|webp|svg)$/.test(url) || /\.(png|jpe?g|gif|webp|svg)$/.test(name)) return 'image'
+  if (url.endsWith('.pdf') || name.endsWith('.pdf')) return 'pdf'
+  return 'generic'
+}
+
+function getExtensionLabel(item) {
+  const source = String(item?.arquivoNome || item?.titulo || '')
+  const parts = source.split('.')
+  return parts.length > 1 ? parts.pop().toUpperCase() : 'ARQ'
+}
+
+function renderPreview(item) {
+  const kind = getPreviewKind(item)
+  if (!item.arquivoUrl) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-white/8 text-xs font-semibold uppercase tracking-[0.2em] text-white/45">
+        Link
+      </div>
+    )
+  }
+  if (kind === 'image') {
+    return <img src={item.arquivoUrl} alt={item.titulo} className="h-full w-full object-cover" />
+  }
+  if (kind === 'pdf') {
+    return (
+      <object data={item.arquivoUrl} type="application/pdf" className="h-full w-full" aria-label={`Pré-visualização de ${item.titulo}`}>
+        <div className="flex h-full w-full items-center justify-center bg-white/8 text-xs font-semibold uppercase tracking-[0.2em] text-white/55">
+          PDF
+        </div>
+      </object>
+    )
+  }
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center bg-white/8 text-white/60">
+      <span className="text-xs font-semibold uppercase tracking-[0.2em]">{getExtensionLabel(item)}</span>
+      <span className="mt-2 text-[11px] uppercase tracking-[0.2em] text-white/40">Sem preview</span>
+    </div>
+  )
+}
+
 function getInstitucionalFolderName(item) {
   const explicitFolder = item?.pastaDestino?.trim()
   if (explicitFolder) return explicitFolder
@@ -464,41 +507,50 @@ function InstitucionalItemCard({ item, canManageInstitucional, deletingId, setEd
           </button>
         </div>
       )}
-      <h3 className="text-xl font-semibold text-white">{item.titulo}</h3>
-      {item.caminhoRelativo && <p className="mt-2 text-sm text-white/60">{item.caminhoRelativo}</p>}
-      <p className="mt-4 text-sm uppercase tracking-[0.18em] text-white/55">
-        {new Date(item.dataCriacao).toLocaleDateString('pt-BR')}
-      </p>
-      <div className="mt-6 flex flex-wrap gap-3">
-        {item.arquivoUrl && (
-          <>
-            <a
-              href={item.arquivoUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center rounded-full border border-white/15 bg-white/14 px-5 py-3 text-sm font-semibold text-white shadow-none"
-            >
-              Abrir arquivo
-            </a>
-            <button
-              type="button"
-              onClick={() => baixarArquivo(item).catch((error) => toast.error(error.message || 'Não foi possível baixar o arquivo'))}
-              className="inline-flex items-center rounded-full border border-white/15 bg-black/25 px-5 py-3 text-sm font-semibold text-white shadow-none"
-            >
-              Baixar arquivo
-            </button>
-          </>
-        )}
-        {item.link && (
-          <a
-            href={item.link}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center rounded-full border border-white/15 bg-white/14 px-5 py-3 text-sm font-semibold text-white shadow-none"
-          >
-            Abrir link
-          </a>
-        )}
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-[180px_1fr]">
+        <div className="overflow-hidden rounded-2xl border border-white/12 bg-black/20">
+          <div className="h-44 w-full">
+            {renderPreview(item)}
+          </div>
+        </div>
+        <div>
+          <h3 className="text-xl font-semibold text-white">{item.titulo}</h3>
+          {item.caminhoRelativo && <p className="mt-2 text-sm text-white/60">{item.caminhoRelativo}</p>}
+          <p className="mt-4 text-sm uppercase tracking-[0.18em] text-white/55">
+            {new Date(item.dataCriacao).toLocaleDateString('pt-BR')}
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            {item.arquivoUrl && (
+              <>
+                <a
+                  href={item.arquivoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center rounded-full border border-white/15 bg-white/14 px-5 py-3 text-sm font-semibold text-white shadow-none"
+                >
+                  Abrir arquivo
+                </a>
+                <button
+                  type="button"
+                  onClick={() => baixarArquivo(item).catch((error) => toast.error(error.message || 'Não foi possível baixar o arquivo'))}
+                  className="inline-flex items-center rounded-full border border-white/15 bg-black/25 px-5 py-3 text-sm font-semibold text-white shadow-none"
+                >
+                  Baixar arquivo
+                </button>
+              </>
+            )}
+            {item.link && (
+              <a
+                href={item.link}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center rounded-full border border-white/15 bg-white/14 px-5 py-3 text-sm font-semibold text-white shadow-none"
+              >
+                Abrir link
+              </a>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )
