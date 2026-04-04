@@ -1,6 +1,8 @@
 package com.construtora.services;
 
 import com.construtora.exceptions.BadRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,6 +22,7 @@ import java.util.UUID;
 
 @Service
 public class S3FileStorageService implements FileStorageService {
+    private static final Logger log = LoggerFactory.getLogger(S3FileStorageService.class);
 
     private final S3Client s3Client;
     private final String bucket;
@@ -79,6 +82,7 @@ public class S3FileStorageService implements FileStorageService {
         } catch (IOException e) {
             throw new BadRequestException("Falha ao processar arquivo");
         } catch (Exception e) {
+            log.error("Falha no upload para o storage. bucket={}, endpoint={}, publicRead={}", bucket, endpoint, publicRead, e);
             throw new BadRequestException("Falha ao enviar arquivo para o storage");
         }
     }
