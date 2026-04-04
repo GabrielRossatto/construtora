@@ -10,7 +10,7 @@ export default function MeusDadosPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ nome: '', email: '', telefone: '', senha: '', cargo: '' })
-  const [empresaNome, setEmpresaNome] = useState('')
+  const [empresa, setEmpresa] = useState({ nome: '', cnpj: '' })
 
   useEffect(() => {
     Promise.all([
@@ -25,7 +25,10 @@ export default function MeusDadosPage() {
           senha: '',
           cargo: data.cargo || ''
         })
-        setEmpresaNome(empresa?.nome || '')
+        setEmpresa({
+          nome: empresa?.nome || '',
+          cnpj: empresa?.cnpj || ''
+        })
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -90,7 +93,10 @@ export default function MeusDadosPage() {
               </button>
             </div>
             <div className="md:col-span-2 pt-3 text-sm text-white/70">
-              Empresa em uso: <span className="font-semibold text-white/90">{empresaNome || 'Não identificada'}</span>
+              Empresa em uso: <span className="font-semibold text-white/90">{empresa.nome || 'Não identificada'}</span>
+            </div>
+            <div className="md:col-span-2 text-sm text-white/70">
+              CNPJ da empresa: <span className="font-semibold text-white/90">{empresa.cnpj || 'Não identificado'}</span>
             </div>
           </form>
         )}
