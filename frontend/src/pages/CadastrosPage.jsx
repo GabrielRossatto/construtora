@@ -116,6 +116,41 @@ function createInstitucionalDraft(index = 1) {
   }
 }
 
+function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB']
+  let size = bytes
+  let unitIndex = 0
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024
+    unitIndex += 1
+  }
+  const precision = size >= 10 || unitIndex === 0 ? 0 : 1
+  return `${size.toFixed(precision)} ${units[unitIndex]}`
+}
+
+function getFileExtension(name) {
+  const parts = String(name || '').split('.')
+  return parts.length > 1 ? parts.pop().toUpperCase() : 'ARQ'
+}
+
+function buildInstitucionalFolderPreview(file) {
+  const mime = (file?.type || '').toLowerCase()
+  const isImage = mime.startsWith('image/')
+  const isPdf = mime === 'application/pdf' || (file?.name || '').toLowerCase().endsWith('.pdf')
+  const relativePath = file.webkitRelativePath || file.relativePath || file.name
+
+  return {
+    id: `${relativePath}-${file.size}-${file.lastModified}`,
+    fileName: file.name,
+    relativePath,
+    previewKind: isImage ? 'image' : isPdf ? 'pdf' : 'generic',
+    previewUrl: isImage || isPdf ? URL.createObjectURL(file) : null,
+    sizeLabel: formatFileSize(file.size),
+    extensionLabel: getFileExtension(file.name)
+  }
+}
+
 function normalizeNullableDate(value) {
   return value ? value : null
 }
@@ -321,6 +356,7 @@ export default function CadastrosPage() {
   const [institucionalDrafts, setInstitucionalDrafts] = useState([createInstitucionalDraft(1)])
   const [institucionalUploadMode, setInstitucionalUploadMode] = useState('arquivo')
   const [institucionalFolderFiles, setInstitucionalFolderFiles] = useState([])
+  const [institucionalFolderPreviews, setInstitucionalFolderPreviews] = useState([])
   const [salvandoInstitucional, setSalvandoInstitucional] = useState(false)
   const [confirmMaterialFolderUpload, setConfirmMaterialFolderUpload] = useState(false)
   const [confirmInstitucionalFolderUpload, setConfirmInstitucionalFolderUpload] = useState(false)
@@ -352,6 +388,19 @@ export default function CadastrosPage() {
       }
     }
   }, [searchParams])
+
+  useEffect(() => {
+    const previews = institucionalFolderFiles.map(buildInstitucionalFolderPreview)
+    setInstitucionalFolderPreviews(previews)
+
+    return () => {
+      previews.forEach((preview) => {
+        if (preview.previewUrl) {
+          URL.revokeObjectURL(preview.previewUrl)
+        }
+      })
+    }
+  }, [institucionalFolderFiles])
 
   async function processMaterialFolderUpload() {
     for (const currentFile of folderFiles) {
@@ -1299,9 +1348,47 @@ export default function CadastrosPage() {
                         </p>
                       </Field>
                       {institucionalFolderFiles.length > 0 && (
-                        <p className="mt-3 text-sm text-slate-600">
-                          {institucionalFolderFiles.length} arquivo(s) selecionado(s).
-                        </p>
+                        <div className="mt-4 space-y-3">
+                          <p className="text-sm text-slate-600">
+                            {institucionalFolderFiles.length} arquivo(s) selecionado(s).
+                          </p>
+                          <div className="grid grid-cols-1 gap-3">
+                            {institucionalFolderPreviews.map((item) => (
+                              <div key={item.id} className="grid grid-cols-[112px_1fr] gap-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                                <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                                  {item.previewKind === 'image' && item.previewUrl ? (
+                                    <img
+                                      src={item.previewUrl}
+                                      alt={item.fileName}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : item.previewKind === 'pdf' && item.previewUrl ? (
+                                    <object
+                                      data={item.previewUrl}
+                                      type="application/pdf"
+                                      className="h-full w-full"
+                                      aria-label={`Pré-visualização de ${item.fileName}`}
+                                    >
+                                      <div className="flex h-full w-full items-center justify-center bg-slate-200 text-xs font-semibold tracking-[0.18em] text-slate-600">
+                                        PDF
+                                      </div>
+                                    </object>
+                                  ) : (
+                                    <div className="flex h-full w-full flex-col items-center justify-center bg-slate-200 text-slate-600">
+                                      <span className="text-xs font-semibold tracking-[0.18em]">{item.extensionLabel}</span>
+                                      <span className="mt-2 text-[11px] uppercase tracking-[0.2em] text-slate-500">Sem preview</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-semibold text-slate-900">{item.fileName}</p>
+                                  <p className="mt-1 truncate text-xs text-slate-500">{item.relativePath}</p>
+                                  <p className="mt-3 text-xs font-medium uppercase tracking-[0.16em] text-slate-500">{item.sizeLabel}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}
